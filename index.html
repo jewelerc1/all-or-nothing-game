@@ -1,0 +1,1814 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>הכל או כלום — MVP 1.53</title><style>
+:root{--bg:#08070a;--panel:#1a1120;--gold:#f4c45d;--pink:#ff2f86;--text:#fff;--muted:#c8bdcd}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body,button,input,select,.tile,.tile *, .wheel-label,.wheel-label *{-webkit-text-size-adjust:none!important;text-size-adjust:none!important}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% 0,#351124 0,#0c080f 48%,#050406 100%);color:var(--text);font-family:Arial,"Noto Sans Hebrew",sans-serif} html{height:100%} body.game-active{height:100dvh;overflow:hidden;padding:4px} body.game-active .app{width:100%;height:100%;max-width:none;margin:0}
+body{padding:8px}
+button,input,select{font:inherit} button{cursor:pointer}
+.hidden{display:none!important} .app{max-width:920px;margin:0 auto}
+.card{background:linear-gradient(180deg,rgba(39,22,44,.97),rgba(15,9,18,.97));border:1px solid rgba(244,196,93,.42);border-radius:22px;box-shadow:0 15px 40px rgba(0,0,0,.45),inset 0 0 26px rgba(255,47,134,.035)}
+.splash{padding:30px;text-align:center} .logo{font-size:clamp(42px,8vw,74px);font-weight:1000;color:#f5c96a;text-shadow:0 2px 0 #7a2b00,0 0 18px rgba(255,43,132,.52);margin:10px 0}
+.tag{font-size:18px;color:#f1dfe9} .badge{display:inline-block;border:1px solid var(--pink);border-radius:999px;padding:6px 12px;background:#260a18}
+.primary,.secondary,.danger,.ghost,.choice{border:0;border-radius:14px;padding:13px 18px;min-height:48px;font-weight:900;color:#fff}
+.primary{background:linear-gradient(135deg,#ff2d86,#8f3cff);box-shadow:0 8px 22px rgba(255,43,134,.28)} .secondary{background:linear-gradient(135deg,#9a711b,#e8bb4d);color:#180f04} .ghost{background:#25162b;border:1px solid #59415f} .danger{background:#74172d} .choice{background:#2a1831;border:1px solid #6a4c73}
+.setup{padding:18px} .setup h2{color:var(--gold);margin-top:2px} .note{font-size:13px;color:var(--muted);line-height:1.5}
+.segment{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 18px} .seg{border:1px solid #5e4767;background:#1a1220;color:#eee;padding:12px;border-radius:12px} .seg.active{border-color:var(--pink);background:#2b1020;box-shadow:0 0 0 2px rgba(255,43,134,.18) inset}
+.player-editor{display:grid;grid-template-columns:1.5fr 1fr 44px;gap:8px;margin:8px 0} .player-editor input,.player-editor select{background:#0d0a10;color:#fff;border:1px solid #503c58;border-radius:11px;padding:11px} .remove{border:0;background:#4a1423;color:#fff;border-radius:10px;font-size:20px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center} .row>*{flex:1}
+.game{--board-size:320px;height:calc(100dvh - 8px);max-height:calc(100dvh - 8px);display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto 148px;grid-template-areas:"top" "board" "players" "action";gap:4px;min-height:0;overflow:hidden}
+.topbar{grid-area:top;min-height:44px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;gap:6px;overflow:hidden}.turn{font-weight:950;font-size:clamp(15px,4vw,19px);line-height:1.1}.status{font-size:clamp(9px,2.6vw,12px);color:var(--muted);line-height:1.15}.topbar .ghost{min-height:32px;padding:5px 7px;font-size:10px;border-radius:10px}
+
+.board-wrap{grid-area:board;position:relative;width:var(--board-size);height:var(--board-size);aspect-ratio:1;margin:auto;border:2px solid #a66b1d;border-radius:0;overflow:hidden;background:#08060a;box-shadow:0 0 34px rgba(255,44,132,.16),0 0 18px rgba(243,196,93,.16);max-width:100%;max-height:100%;min-width:0;min-height:0;container-type:inline-size}
+.scene{position:absolute;inset:6.6666667%;background-image:url("board_scene.png");background-size:100% 100%;background-position:center;background-repeat:no-repeat;z-index:1;overflow:hidden}
+.board-grid,.marker-layer{position:absolute;inset:0;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);gap:0;direction:ltr}
+.board-grid{z-index:30;pointer-events:none}
+.tile{position:relative;width:100%;height:100%;aspect-ratio:1/1;margin:0;padding:1px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;direction:rtl;overflow:hidden;border:1.25px solid rgba(232,167,61,.96);border-radius:5px;background:#121018;box-shadow:inset 0 0 10px rgba(0,0,0,.84),0 0 5px rgba(231,166,61,.22)}
+.tile .ico{font-size:clamp(9px,2cqw,17px);line-height:1} .tile .lbl{font-size:clamp(5px,1.13cqw,10px);line-height:1.02;font-weight:950;color:#fff;text-shadow:0 1px 2px #000}
+.tile.start{background:linear-gradient(180deg,#4c300b,#160e05);border-color:#ffd760} .tile.all{background:linear-gradient(180deg,#7b1536,#260711);border-color:#ff3f8f;box-shadow:inset 0 0 10px #000,0 0 7px rgba(255,55,142,.52)} .tile.nothing{background:linear-gradient(180deg,#171a4d,#090a22);border-color:#7567ff} .tile.wheel{background:linear-gradient(180deg,#4b3308,#110c04);border-color:#ffca43} .tile.immune,.tile.extra,.tile.swap,.tile.choose,.tile.lose,.tile.back2,.tile.forward3,.tile.forward2,.tile.back3board,.tile.reset{background:linear-gradient(180deg,#211629,#0b0810);border-color:#a8773d}
+.marker-layer{z-index:90;pointer-events:none} .marker-cell{display:grid;grid-template-columns:repeat(2,min-content);place-content:center;place-items:center;gap:2px;padding:0;width:100%;height:100%} .player-dot{display:block;width:11px;height:11px;border-radius:50%;border:1.6px solid #fff;box-sizing:border-box;margin:0} .current-dot{animation:pulse .7s ease-in-out infinite alternate} @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.3)}}
+
+/* Live wheel completely covers the wheel that exists in the decorative scene image. */
+.wheel-shell{position:absolute;left:13.25%;top:23.65%;width:73.7%;aspect-ratio:1/1;z-index:20;pointer-events:auto;overflow:visible}
+.wheel-disc{position:absolute;inset:0;border-radius:50%;background-image:url("wheel_disc.png");background-size:100% 100%;background-position:center;background-repeat:no-repeat;transform-origin:50% 50%;transition:transform 2.25s cubic-bezier(.12,.73,.09,1);filter:drop-shadow(0 9px 15px rgba(0,0,0,.62))}
+.wheel-pointer{position:absolute;left:50%;top:1.2%;transform:translateX(-50%);width:6.8%;height:11.8%;z-index:40;filter:drop-shadow(0 0 8px rgba(255,165,32,.75));pointer-events:none}
+.wheel-pointer:before{content:"";position:absolute;inset:0;clip-path:polygon(34% 0,66% 0,88% 28%,50% 100%,12% 28%);background:linear-gradient(90deg,#c77709 0%,#fff1a9 42%,#f5bd42 62%,#9a4d00 100%);border-radius:4px}
+.wheel-pointer:after{content:"";position:absolute;left:33%;right:33%;top:10%;bottom:14%;clip-path:polygon(35% 0,65% 0,100% 38%,50% 100%,0 38%);background:linear-gradient(135deg,#fff4bd,#d7810c);opacity:.9}
+.wheel-shell{container-type:inline-size}
+.wheel-label{position:absolute;left:50%;top:50%;width:15%;text-align:center;transform-origin:50% 50%;font-size:clamp(4.8px,2.2cqw,8.5px);font-weight:950;line-height:.98;color:#fff;text-shadow:0 1px 2px #000,0 0 4px rgba(0,0,0,.55);z-index:3;pointer-events:none;white-space:normal;overflow:visible}
+.wheel-label .wi{display:block;font-size:1.08em;line-height:1;margin-bottom:1px}
+.wheel-label .wtxt{display:block}
+
+.controls{grid-area:action;height:100%;padding:7px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:7px;overflow:hidden}
+.dice-box{display:flex;justify-content:center;align-items:center;gap:5px;margin:0}.die{width:50px;height:50px;border:1px solid #b5802b;border-radius:12px;background:#0b0910;display:grid;place-items:center;color:#ffe195;font-size:30px;box-shadow:inset 0 0 12px #000}
+#effectStatus{min-width:0;min-height:50px;height:50px;display:grid;place-items:center;text-align:center;padding:5px 7px;border:1px solid rgba(255,73,151,.7);border-radius:12px;background:linear-gradient(180deg,#2b1020,#130b16);font-size:clamp(13px,3vw,18px);line-height:1.05;font-weight:950;color:#ffe09a;overflow:hidden}#effectStatus.landed:before{content:"נחתת על: ";color:#fff;font-size:.68em}.roll{width:auto;min-width:86px;margin:0;min-height:50px;padding:8px 10px;font-size:14px;white-space:nowrap}
+.player-strip{grid-area:players;display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:3px;max-height:58px;min-height:32px;overflow:hidden}.pchip{flex:1 1 88px;max-width:150px;padding:4px 6px;border:1px solid #4c3b54;border-radius:10px;background:#17111d;text-align:center;line-height:1.08}.pchip.active{border:2px solid #ff4390}.pname{font-size:clamp(11px,2.8vw,14px);font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pmeta{font-size:9px;color:#e9dfee;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bottom-message-host{grid-area:action;width:100%;height:100%;margin:0;min-height:0;overflow:hidden}.bottom-message-host:empty{display:none}.modal-back{position:static;width:100%;height:100%;background:transparent;padding:0}.modal{width:100%;height:100%;padding:8px 10px;text-align:center;border:1px solid rgba(255,75,154,.7);border-radius:14px;background:linear-gradient(180deg,#241020,#100a13);display:flex;flex-direction:column;justify-content:center;min-height:0;overflow:auto}.modal h3{font-size:clamp(18px,4vw,25px);line-height:1.05;color:#ffe09a;margin:0 0 5px}.modal p{font-size:clamp(14px,3.3vw,19px);line-height:1.25;margin:0}.choices{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:7px}.modal button{min-height:38px;padding:7px 10px;font-size:13px}#voiceBtn{min-height:32px;padding:5px 7px;font-size:10px;white-space:nowrap}body.modal-open .controls{display:none}
+@media(max-width:600px){.card{border-radius:14px}.topbar{padding:4px 6px}.tile{border-radius:3px}.tile .ico{font-size:9px}.tile .lbl{font-size:5.5px}.player-dot{width:9px;height:9px;border-width:1.2px}.pmeta{display:none}.player-strip{max-height:42px}.pchip{padding:4px;max-width:120px}.die{width:44px;height:44px;font-size:27px}.dice-box{gap:3px}#effectStatus{height:44px;min-height:44px;font-size:12px}.roll{min-height:44px;min-width:78px;padding:6px 8px;font-size:12px}.game{grid-template-rows:auto minmax(0,1fr) auto 136px}.modal h3{font-size:18px}.modal p{font-size:14px}.modal button{min-height:34px;font-size:12px}}
+@media(max-height:650px) and (orientation:portrait){.topbar{min-height:38px}.topbar .ghost{min-height:28px;font-size:9px}.turn{font-size:14px}.status{font-size:9px}.player-strip{max-height:34px}.game{grid-template-rows:auto minmax(0,1fr) auto 118px}.controls{padding:4px;gap:4px}.die{width:38px;height:38px;font-size:23px}#effectStatus{height:38px;min-height:38px;font-size:11px}.roll{min-height:38px;min-width:72px;font-size:11px}.modal{padding:5px 7px}.modal h3{font-size:16px}.modal p{font-size:12px;line-height:1.18}.modal button{min-height:30px;padding:5px 7px;font-size:11px}.choices{margin-top:4px;gap:4px}}
+@media(min-width:640px) and (orientation:landscape){.game{grid-template-columns:var(--board-size) minmax(260px,1fr);grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"board top" "board players" "board action";column-gap:8px;row-gap:6px}.board-wrap{margin:auto}.topbar{align-self:start}.player-strip{max-height:none;align-content:start;padding:2px}.pchip{flex-basis:120px;max-width:none}.pmeta{display:block;font-size:10px}.controls{align-self:end;grid-template-columns:1fr 1fr;grid-template-areas:"dice dice" "status status" "roll roll";height:auto;max-height:230px;padding:10px}.dice-box{grid-area:dice}.controls #effectStatus{grid-area:status;height:auto;min-height:48px}.controls .roll{grid-area:roll;width:100%}.die{width:58px;height:58px;font-size:34px}.bottom-message-host{align-self:stretch;height:100%}.modal{height:auto;max-height:100%;padding:12px}.modal h3{font-size:24px}.modal p{font-size:18px}.modal button{min-height:40px;font-size:14px}}
+
+
+
+
+/* v1.51 — Android WebView: smaller text, centered special tiles, readable icons */
+.tile-inner{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  transform-origin:50% 50%;
+  min-width:0;min-height:0;
+  text-align:center
+}
+.tile-inner .ico,.tile-inner .lbl{flex:0 0 auto;max-width:100%;text-align:center}
+.tile.immune .tile-inner,.tile.extra .tile-inner{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important
+}
+.tile.immune .ico,.tile.extra .ico,
+.tile.immune .lbl,.tile.extra .lbl{
+  width:100%;text-align:center!important;margin:0!important
+}
+
+.wheel-label{
+  height:12.5%;
+  display:flex;align-items:center;justify-content:center
+}
+.wheel-label-inner{
+  width:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  transform-origin:50% 50%;
+  min-width:0;min-height:0
+}
+
+/* Board icons stay visible; wording is substantially smaller. */
+html.android-webview .tile .ico{
+  font-size:7.8px!important;
+  line-height:.9!important;
+  margin:0!important
+}
+html.android-webview .tile .lbl{
+  font-size:2.05px!important;
+  line-height:.84!important;
+  letter-spacing:-.08px!important;
+  transform:scale(.62);
+  transform-origin:center center;
+  white-space:normal;
+  margin:0!important
+}
+html.android-webview .tile.immune .ico,
+html.android-webview .tile.extra .ico{
+  font-size:8.4px!important
+}
+
+/* Wheel text smaller; pictograms remain prominent. */
+html.android-webview .wheel-label{
+  font-size:2.25px!important;
+  line-height:.84!important
+}
+html.android-webview .wheel-label .wi{
+  font-size:1.55em!important;
+  line-height:.88!important;
+  margin:0!important
+}
+html.android-webview .wheel-label .wtxt{
+  display:block;
+  line-height:.84!important;
+  transform:scale(.64);
+  transform-origin:center center
+}
+
+/* Surrounding UI also reduced to match the HTML proportions. */
+html.android-webview .turn{font-size:7.2px!important;line-height:1!important}
+html.android-webview .status{font-size:4.8px!important;line-height:1!important}
+html.android-webview .topbar .ghost,
+html.android-webview #voiceBtn{font-size:5.5px!important}
+html.android-webview .pname{font-size:5.8px!important}
+html.android-webview .pmeta{font-size:4.7px!important}
+html.android-webview #effectStatus{font-size:5.9px!important}
+html.android-webview .roll{font-size:6.5px!important}
+html.android-webview .modal h3{font-size:11px!important}
+html.android-webview .modal p{font-size:8.5px!important}
+html.android-webview .modal button{font-size:7.8px!important}
+html.android-webview .die{font-size:22px!important}
+
+/* Opening-screen copyright */
+.copyright{
+  margin-top:14px;
+  font-size:11px;
+  line-height:1.35;
+  color:#bda9ba;
+  text-align:center;
+  direction:rtl
+}
+html.android-webview .copyright{font-size:8px!important}
+
+</style>
+<!-- v1.53 self-contained build: all graphics embedded -->
+</head><body><div class="app">
+<section id="screenStart" class="card splash"><div class="badge">18+ · משחק למבוגרים בלבד</div><div class="logo">הכל או כלום</div><p class="tag">משחק שולחן דיגיטלי · אין מנצחים — המטרה היא הכיף</p><button class="primary" onclick="goSetup()">התחל משחק</button><div class="copyright">© 2026 רועי ג׳רי חן · כל הזכויות שמורות</div></section>
+<section id="screenSetup" class="card setup hidden"><h2>הגדרת משחק</h2><p class="note">בחר סוג משחק והזן רק את המשתתפים שמשחקים בפועל. שורות ריקות לא נכנסות למשחק.</p><div class="segment"><button type="button" id="modeStraight" class="seg active" aria-pressed="true" onclick="setMode('straight')">סטרייטים</button><button type="button" id="modeGay" class="seg" aria-pressed="false" onclick="setMode('gay')">גייז / לסביות</button><button type="button" id="modeBi" class="seg" aria-pressed="false" onclick="setMode('bi')">דו־מיני / מעורב</button></div><div id="playersEditor"></div><div class="row"><button class="ghost" onclick="addPlayer()">+ הוסף משתתף</button><button class="primary" onclick="startGame()">התחל משחק</button></div></section>
+<section id="screenGame" class="game hidden"><div class="card topbar"><div><div class="turn" id="turnLabel"></div><div class="status" id="turnStatus"></div></div><div style="display:flex;gap:6px"><button id="voiceBtn" class="ghost" onclick="toggleVoice()">🔊 קול פעיל</button><button class="ghost" onclick="newGame()">משחק חדש</button></div></div>
+<div id="board" class="board-wrap"><div class="scene"><div class="wheel-shell" onclick="manualSpinWheel()"><div id="wheelDisc" class="wheel-disc"></div><div class="wheel-pointer"></div></div></div><div id="boardGrid" class="board-grid"></div><div id="markerLayer" class="marker-layer" aria-hidden="true"></div></div>
+<div class="card controls"><div class="dice-box"><div id="die1" class="die">⚀</div><div id="die2" class="die">⚀</div></div><div id="effectStatus">מוכן לזריקה</div><button id="rollBtn" class="primary roll" onclick="rollDice()">🎲 זרוק קוביות</button></div><div id="playerStrip" class="player-strip"></div><div id="modalHost" class="bottom-message-host"></div></section></div>
+<script>
+(function(){
+  const ua=navigator.userAgent||'';
+  if(/;\s*wv\)/i.test(ua)||(/Android/i.test(ua)&&/Version\/4\.0/i.test(ua))) document.documentElement.classList.add('android-webview');
+})();
+const COLORS=['#ff3b3b','#3b8cff','#39d36d','#b650ff','#ff9f1a','#20c7c9','#ff5fa2','#d5c64d'];
+const DICE=['⚀','⚁','⚂','⚃','⚄','⚅'];
+const WHEEL_CATS=[
+  {k:'pair',t:'זוג',i:'❤️'}, {k:'bold',t:'משימה נועזת',i:'💋'}, {k:'truthdare',t:'אמת או חובה',i:'🎭'}, {k:'replace',t:'החלפה',i:'🔄'}, {k:'luck',t:'מזל',i:'🍀'}, {k:'choose',t:'בחירת שחקן',i:'👥'}, {k:'aon',t:'הכל או כלום',i:'👑'},
+  {k:'pair',t:'זוג',i:'❤️'}, {k:'bold',t:'משימה נועזת',i:'💋'}, {k:'truthdare',t:'אמת או חובה',i:'🎭'}, {k:'replace',t:'החלפה',i:'🔄'}, {k:'luck',t:'מזל',i:'🍀'}, {k:'choose',t:'בחירת שחקן',i:'👥'}, {k:'aon',t:'הכל או כלום',i:'👑'}
+];
+let gameMode='straight', players=[],current=0,busy=false,extraTurn=false,wheelRotation=0,chainDepth=0,pendingChoiceAction=null,completedTurns=0,taskReplacementFor={};
+const allWarmupCards=[
+ "בחר משתתף ושמור איתו על קשר עין במשך 30 שניות בלי לדבר.",
+ "בחר משתתף ולחש לו מה הדבר הראשון שמושך אותך בו.",
+ "בחר משתתף ותן לו מחמאה נועזת על הנוכחות שלו.",
+ "בחר משתתף ורקדו יחד ריקוד איטי במשך 30 שניות.",
+ "בחר משתתף והתקרבו עד למרחק שנוח לשניכם ושמרו על קשר עין.",
+ "בחר משתתף ולחש לו משפט פלרטטני שרק הוא ישמע.",
+ "בחר משתתף ואמור לו איזה פרט במראה שלו הכי תפס אותך.",
+ "בחר משתתף ותן לו לבחור לך כינוי פלרטטני לסיבוב אחד.",
+ "בחר משתתף והשלם מולו את המשפט: אם היינו לבד עכשיו, הייתי רוצה ש...",
+ "בחר משתתף ותאר לו בשלוש מילים את הכימיה ביניכם.",
+ "בחר משתתף ושאל אותו בלחש מה לדעתו הכי מושך בך.",
+ "בחר משתתף ותנו זה לזה מחמאה שלא קשורה לבגדים.",
+ "בחר משתתף והתקרב אליו מאחור ולחש לו מחמאה.",
+ "בחר משתתף ותן לו לבחור שיר לריקוד קצר שלכם.",
+ "בחר משתתף ושבו צמוד זה לזה במשך חצי דקה.",
+ "בחר משתתף ואמור לו מה היית שם לב אליו אם הייתם נפגשים לראשונה הערב.",
+ "בחר משתתף ותנו לקבוצה לבחור מי מכם מתחיל את הפלירט.",
+ "בחר משתתף והחליפו מבט במשך 20 שניות, ואז כל אחד אומר מה חשב.",
+ "בחר משתתף וספר לו איזו אנרגיה הוא משדר לך.",
+ "בחר משתתף ואמור לו מה לדעתך הופך אותו למסוכן במובן הטוב.",
+ "בחר משתתף ותן לו לבחור לך תנוחה פלרטטנית לצילום דמיוני.",
+ "בחר משתתף ושאל אותו מה היה עושה כדי למשוך את תשומת הלב שלך.",
+ "בחר משתתף ותן לו משפט פתיחה כאילו אתם נפגשים בבר בפעם הראשונה.",
+ "בחר משתתף ותנו זה לזה מבט ארוך בלי לחייך במשך 15 שניות.",
+ "בחר משתתף ואמור לו איזה סוג דייט היה מתאים לכם.",
+ "בחר משתתף ובחרו יחד מילה אחת שמתארת את המתח ביניכם.",
+ "בחר משתתף ותן לו לבחור לך משימת פלירט קצרה.",
+ "בחר משתתף ואמור לו מה היית רוצה לדעת עליו אחרי חצות.",
+ "בחר משתתף ותן לו להחליט אם המחמאה שלך תהיה מתוקה או נועזת.",
+ "בחר משתתף ולחש לו משהו שהיית רוצה שישאל אותך.",
+ "בחר משתתף ורקדו קרוב במשך 20 שניות בלי לדבר.",
+ "בחר משתתף ותן לו לבחור אם תעמדו פנים מול פנים או גב אל גב למשימה הבאה.",
+ "בחר משתתף והחליפו משפטי פלירט במשך 20 שניות.",
+ "בחר משתתף ותן לו לבחור לך שיר שמתאים לאווירה ביניכם.",
+ "בחר משתתף והציגו זה לזה את המבט הכי מפתה שלכם.",
+ "בחר משתתף ואמור לו מה לדעתך הדבר הכי מושך בקול שלו.",
+ "בחר משתתף וספר לו איזו תכונה שלו יכולה לגרום לך לאבד ריכוז.",
+ "בחר משתתף ותנו זה לזה מחמאה על שפת הגוף.",
+ "בחר משתתף והעמידו פנים שאתם בדייט ראשון למשך דקה.",
+ "בחר משתתף ותן לו לבחור מי מכם צריך להתקרב ראשון."
+];
+const allTouchCards=[
+ "בחר משתתף ושאל אותו איזו מחמאה הוא היה רוצה לשמוע ממך.",
+ "בחר משתתף ואמור לו מה לדעתך היה הדבר הראשון שהיה גורם לכימיה ביניכם.",
+ "בחר משתתף ותן לו לבחור מילה שאתה חייב לשלב במשפט פלרטטני.",
+ "בחר משתתף ורקדו בלי להשתמש בידיים במשך 20 שניות.",
+ "בחר משתתף ותנו לשאר הקבוצה לבחור לכם תנוחת עמידה פלרטטנית.",
+ "בחר משתתף ואמור לו איזה צבע עליו הכי מושך את העין שלך.",
+ "בחר משתתף ושמור איתו על קשר עין בזמן שאתה אומר לו מחמאה.",
+ "בחר משתתף ותן לו להחליט אם תספר לו סוד קטן או פנטזיה כללית.",
+ "בחר משתתף והחליפו ביניכם משפט אחד שהייתם אומרים בדייט סודי.",
+ "בחר משתתף וספר לו איזה סוג של ביטחון עצמי הכי מושך אותך.",
+ "בחר משתתף ותן לו עיסוי כתפיים של 20 שניות אם שניכם מסכימים.",
+ "בחר משתתף ותן לו להניח את ידו על הכתף שלך למשך 15 שניות.",
+ "בחר משתתף ואחזו ידיים במשך 20 שניות תוך קשר עין.",
+ "בחר משתתף ותן לו לבחור אם המגע הבא יהיה ביד, בכתף או בגב העליון.",
+ "בחר משתתף ותן לו נשיקה על היד אם שניכם מסכימים.",
+ "בחר משתתף ותן לו נשיקה על הלחי אם שניכם מסכימים.",
+ "בחר משתתף ותן לו לבחור אם אתם מתחבקים או רק עומדים צמוד למשך 15 שניות.",
+ "בחר משתתף והענק לו חיבוק ארוך של 10 שניות.",
+ "בחר משתתף ותן לו עיסוי קצר בכפות הידיים.",
+ "בחר משתתף והניחו כף יד מול כף יד במשך 20 שניות.",
+ "בחר משתתף והתקרבו פנים אל פנים עד למרחק שנוח לשניכם.",
+ "בחר משתתף ותן לו לבחור אם לשבת לידך או מולך למשימה הבאה.",
+ "בחר משתתף ותן לו לסדר לך בעדינות את הצווארון או השיער.",
+ "בחר משתתף ותן לו לבחור נקודה מעל הכתפיים שבה יניח יד לשתי שניות.",
+ "בחר משתתף והחזק את ידו בזמן שאתה אומר לו מחמאה נועזת.",
+ "בחר משתתף ותנו זה לזה חיבוק קצר ואז מבט של חמש שניות.",
+ "בחר משתתף ותן לו לבחור בין ריקוד איטי לחיבוק קצר.",
+ "בחר משתתף והחליפו מקום ישיבה תוך כדי אחיזת ידיים.",
+ "בחר משתתף ותן לו לבחור אם להתקרב אליך מצד ימין או שמאל.",
+ "בחר משתתף ותנו זה לזה עיסוי כתפיים של 15 שניות כל אחד.",
+ "בחר משתתף ושבו ברך ליד ברך למשך חצי דקה.",
+ "בחר משתתף ותן לו לבחור אם להחזיק את היד שלך או לגעת בכתף.",
+ "בחר משתתף והניחו את המצח קרוב זה לזה בלי לגעת במשך 10 שניות.",
+ "בחר משתתף ותן לו לבחור אם אתם עומדים צמוד או יושבים צמוד.",
+ "בחר משתתף ותן לו להוביל אותך בריקוד קצר.",
+ "בחר משתתף והחליפו חיבוק ואז כל אחד אומר מילה אחת על התחושה.",
+ "בחר משתתף ותן לו לבחור אם המשימה תסתיים במחמאה או בחיבוק.",
+ "בחר משתתף ואחזו ידיים בזמן שכל אחד אומר מה הוא מוצא מושך בשני.",
+ "בחר משתתף ותן לו לבחור אם לשבת לידך עד התור הבא.",
+ "בחר משתתף והניחו ידיים זו מול זו בלי לגעת במשך 15 שניות."
+];
+const allBoldHeatCards=[
+ "בחר משתתף ותאר לו איך היית מתחיל פלירט איתו במקום ציבורי.",
+ "בחר משתתף וספר לו מה לדעתך הופך רגע למתח מיני.",
+ "בחר משתתף ואמור לו איזו סיטואציה הייתה יכולה ליצור ביניכם כימיה.",
+ "בחר משתתף ותן לו לבחור שאלה נועזת אחת שתענה עליה.",
+ "בחר משתתף וספר לו על דייט אידיאלי שמתחיל תמים והופך למפתיע.",
+ "בחר משתתף ואמור לו איזה סוג של קרבה הכי מסקרן אותך.",
+ "בחר משתתף ותן לו לבחור אם תשאל אותו אמת או תיתן לו מחמאה.",
+ "בחר משתתף וספר לו איזו תכונה שלו יכולה לגרום לך לקנא.",
+ "בחר משתתף ותאר לו באיזה מקום הכי מפתיע היית רוצה לצאת איתו לדייט.",
+ "בחר משתתף ואמור לו מה היה גורם לך לחשוב עליו יום אחרי.",
+ "בחר משתתף ותן לו להשלים עבורך את המשפט: אתה הכי מסוכן כש...",
+ "בחר משתתף וספר לו מה בעיניך הופך נשיקה למוצלחת, בלי לפרט מעבר.",
+ "בחר משתתף ואמור לו מה לדעתך יוצר מתח לפני נשיקה.",
+ "בחר משתתף ותן לו לבחור אם תספר פנטזיה כללית או זיכרון פלרטטני.",
+ "בחר משתתף ותאר במילה אחת מה אתה מרגיש כשאתה מסתכל עליו.",
+ "בחר משתתף ותן לו לשאול אותך שאלה אחת על משיכה.",
+ "בחר משתתף ואמור לו מה לדעתך הדבר הכי מסקרן בו.",
+ "בחר משתתף וספר לו איזה סוג של סוד היית מוכן לחלוק איתו.",
+ "בחר משתתף ותנו זה לזה משפט שהייתם שולחים בהודעה אחרי חצות.",
+ "בחר משתתף ותן לו לבחור אם המשפט שלך יהיה רומנטי, נועז או מסתורי.",
+ "בחר משתתף ואמור לו מה היה גורם לך לרצות להישאר איתו עוד שעה.",
+ "בחר משתתף ותנו זה לזה מחמאה שאסור להשתמש בה במילה מושך.",
+ "בחר משתתף ושחקו דקה כאילו אתם שני זרים שנפגשו במסיבה.",
+ "בחר משתתף ותן לו לבחור תפקיד: המפתה או הקשה להשגה.",
+ "בחר משתתף ושחקו 30 שניות כאילו אתם נפגשים אחרי שנים.",
+ "בחר משתתף ותנו לקבוצה לתת לכם סיטואציה לפלירט של 20 שניות.",
+ "בחר משתתף והעמידו פנים שאתם נפגשים בחופשה בחו״ל.",
+ "בחר משתתף ותן לו לבחור אם אתה צריך להתחיל שיחה או רק להסתכל.",
+ "בחר משתתף ושחקו 30 שניות כאילו אתם שומרים סוד משותף.",
+ "בחר משתתף ותנו זה לזה שם בדוי למשך הסיבוב הבא.",
+ "בחר משתתף ותן לו לבחור איזה סגנון פלירט תאמץ: ישיר, מסתורי או מצחיק.",
+ "בחר משתתף ושחקו כאילו זו הפגישה האחרונה שלכם הערב.",
+ "בחר משתתף ותאר לו מה היית לוחש באוזן בדייט מוצלח.",
+ "בחר משתתף ותן לו לבחור אם אתה חייב לדבר או לשתוק בזמן קשר עין.",
+ "בחר משתתף והעמידו פנים שאתם זוג בסרט רומנטי למשך 30 שניות.",
+ "בחר משתתף ותנו לקבוצה לבחור מילה שאסור לכם להגיד בזמן הפלירט.",
+ "בחר משתתף והחליפו משפטים כאילו אתם נפגשים בסתר.",
+ "בחר משתתף ותן לו לבחור משפט שאתה חייב לומר בצורה הכי מפתה שאתה יכול.",
+ "בחר משתתף ושחקו 30 שניות כאילו אתם מכירים סוד על השני.",
+ "בחר משתתף ותנו זה לזה כינוי סודי עד סוף הסיבוב.",
+ "בחר משתתף ותאר לו את הרושם שהיה משאיר עליך בדייט ראשון.",
+ "בחר משתתף ותנו זה לזה דירוג לכימיה ביניכם מ־1 עד 10 והסבר קצר.",
+ "בחר משתתף ואמור לו מה היה הופך את הערב הזה לבלתי נשכח מבחינתך.",
+ "בחר משתתף ותן לו לבחור אם אתה מספר משהו אמיתי או ממציא סוד פלרטטני.",
+ "בחר משתתף ושאל אותו מה היה גורם לו לבחור בך למשימה זוגית.",
+ "בחר משתתף ואמור לו מה לדעתך הדבר הכי נועז שאתה מוכן לנסות הערב במשחק.",
+ "בחר משתתף ותן לו לבחור אם תעמוד לידו עד התור הבא.",
+ "בחר משתתף וספר לו מה היית רוצה שיקרה בדייט מושלם בלי להיכנס לפרטים מפורשים.",
+ "בחר משתתף ותן לו לבחור אם אתה צריך לומר משהו מתוק או משהו מסוכן.",
+ "בחר משתתף ואמור לו איזה סוג של מבט שלו הכי משפיע עליך."
+];
+// 20 מקומות שמורים לדרגת אקסטרים. הכנס את הניסוח בין המרכאות.
+const allExtremeCards=[
+  "עליך להוריד פריט לבוש ולהישאר כך עד סוף המשחק.", // אקסטרים 01
+  "עליך להראות למשתתפים את איבר מינך.", // אקסטרים 02
+  "בחר משתתף ונשק אותו צרפתית בחושניות.", // אקסטרים 03
+  "בחר משתתף ולקק לו את הפטמות.", // אקסטרים 04
+  "בחר משתתף ולקק לו את האוזן והצוואר בחושניות.", // אקסטרים 05
+  "בחר משתתף ותן לו פליק בטוסיק.", // אקסטרים 06
+  "אונן מול כל המשתתפים.", // אקסטרים 07
+  "בצע ריקוד לאפדנס על אחד המשתתפים לבחירתך.", // אקסטרים 08
+  "אונן לאחד המשתתפים לבחירתך.", // אקסטרים 09
+  "הדגם למשתתפים איך אתה נאנח באורגזמה.", // אקסטרים 10
+  "שאל את אחד המשתתפים לבחירתך שאלה חופשית.", // אקסטרים 11
+  "התפשט ותישאר רק בהלבשה תחתונה.", // אקסטרים 12
+  "בחר משתתף ותאמר לו ליד כולם איך היית מענג אותו.", // אקסטרים 13
+  "עשה סטריפטיז עד לעירום מלא.", // אקסטרים 14
+  "בחר משתתף ורד לו ליד כולם.", // אקסטרים 15
+  "בחר משתתף ועשה לו מסאז'.", // אקסטרים 16
+  "בחר משתתף שיעשה לך מסאז'.", // אקסטרים 17
+  "קום ותכין צ'ייסרים לכל המשתתפים.", // אקסטרים 18
+  "ספר כמה פעמים הכי הרבה הגעת לאורגזמה בסקס אחד.", // אקסטרים 19
+  "ענג את אחד המשתתפים בדרך מקורית." // אקסטרים 20
+];
+const allCards=[...allWarmupCards,...allTouchCards,...allBoldHeatCards,...allExtremeCards];
+
+const nothingBaseCards=[
+ "מי בחדר הכי מסקרן אותך כרגע ולמה?",
+ "מה הדבר הראשון שאתה שם לב אליו באדם שמושך אותך?",
+ "מה יותר מושך אותך: ביטחון עצמי, מסתורין או הומור?",
+ "איזה סוג של מבט גורם לך להרגיש שיש כימיה?",
+ "מה המחמאה הכי נועזת שהיית שמח לקבל?",
+ "מה פרט קטן בגוף או בשפת הגוף יכול למשוך אותך מיד?",
+ "מה יותר משפיע עליך: קול, ריח, חיוך או קשר עין?",
+ "איזה סוג של ביטחון עצמי אתה מוצא הכי מושך?",
+ "מה הדבר הכי מושך באדם שלא קשור למראה?",
+ "מה גורם לך לחשוב על מישהו גם אחרי שהערב נגמר?",
+ "מה מבחינתך ההבדל בין פלירט למשיכה אמיתית?",
+ "מה הופך מישהו למסקרן בעיניך תוך דקות?",
+ "איזה סוג של נוכחות בחדר מושך אותך במיוחד?",
+ "מה יכול להפוך אדם רגיל למאוד מושך בעיניך?",
+ "מה יותר חשוב לך בכימיה: המתח או הנוחות?",
+ "איזה סוג של מגע תמים יכול להרגיש מאוד משמעותי?",
+ "מה המחווה הכי קטנה שיכולה לגרום לך להתרגש?",
+ "מה גורם לך להרגיש שמישהו באמת רוצה אותך?",
+ "מה בעיניך הופך שיחה למינית בלי להיות מפורשת?",
+ "מה הדבר הכי סקסי שאפשר לעשות בלי לגעת?",
+ "איזה סוג של לבוש מושך את העין שלך יותר מהכול?",
+ "מה יותר מושך אותך: אדם ישיר או אדם שמתקדם לאט?",
+ "מה הדבר שאתה הכי אוהב לראות בשפת הגוף של אדם שנמשך אליך?",
+ "מה בעיניך הופך חיוך למסוכן?",
+ "איזה סוג של אנרגיה גורם לך להימשך למישהו?",
+ "מה יותר מסקרן אותך: מישהו שקל לקרוא או מישהו מסתורי?",
+ "מה הדבר הכי מושך בעיניך בקול של אדם?",
+ "מה גורם לך להרגיש נחשק?",
+ "מה הפער בין מה שמושך אותך בתיאוריה לבין מה שבאמת עובד עליך?",
+ "איזה סוג של פלירט תמיד מצליח למשוך את תשומת הלב שלך?",
+ "מה הפנטזיה הכי כללית שאתה מוכן לשתף בלי להיכנס לפרטים?",
+ "האם אי פעם פנטזת על מישהו שלא ציפית להימשך אליו?",
+ "איזה סוג של סיטואציה הכי מדליקה אצלך את הדמיון?",
+ "מה המקום הכי לא צפוי שבו הרגשת משיכה למישהו?",
+ "האם אתה אוהב יותר פנטזיה מתוכננת או ספונטניות?",
+ "מה הדבר שהכי מסקרן אותך במשחקי משיכה בין כמה אנשים?",
+ "האם אי פעם היה לך קראש על בן או בת זוג של מישהו אחר?",
+ "איזה סוג של סוד פלרטטני אתה אוהב לשמור לעצמך?",
+ "מה הדבר הכי נועז שפנטזת עליו אבל לא ניסית?",
+ "האם אתה נמשך יותר למה שמותר או למה שקצת אסור?",
+ "מה יותר מסקרן אותך: מתח ארוך או חיבור מיידי?",
+ "איזה סוג של תרחיש רומנטי או נועז חוזר לך בדמיון?",
+ "מה הדבר שאתה הכי אוהב בדינמיקה של פלירט חדש?",
+ "האם אתה אוהב להיות זה שמתחיל או זה שמפתים אותו?",
+ "מה יותר מרגש אותך: הציפייה או הרגע עצמו?",
+ "איזה סוג של סיטואציה גורם לך להרגיש הכי חופשי?",
+ "האם אי פעם משיכה הפתיעה אותך לגמרי?",
+ "מה הדבר שהכי מפתיע אותך בפנטזיות של עצמך?",
+ "איזה סוג של משחק תפקידים כללי היה מסקרן אותך?",
+ "האם אתה אוהב יותר מסתורין, שליטה או ספונטניות בפלירט?",
+ "מה הגבול שלך בין נועז למסקרן מדי?",
+ "מה הדבר שאתה לא מוכן לוותר עליו כדי להרגיש בטוח ונינוח?",
+ "מה צריך לקרות כדי שתרגיש מספיק בנוח להיות נועז יותר?",
+ "מה חשוב לך יותר במשיכה: אמון או סקרנות?",
+ "איך אתה יודע שמישהו מכבד את הגבולות שלך ועדיין מפלרטט?",
+ "מה הדבר שהכי חשוב לך לפני שאתה מתקדם לקרבה פיזית?",
+ "מה מבחינתך הופך מגע לנעים ולא מלחיץ?",
+ "מה יותר מושך אותך: אדם שמבקש רשות או אדם שקורא את הסיטואציה היטב?",
+ "מה הדבר שיכול לגרום לך לעצור גם אם יש משיכה?",
+ "מה צריך לקרות כדי שתרגיש שהכימיה הדדית?",
+ "מה מבחינתך סימן ברור שמישהו רוצה שתתקרב?",
+ "מה יותר חשוב לך: מתח מיני חזק או תחושת ביטחון?",
+ "מה הגבול הכי ברור שלך במשחק פלרטטני?",
+ "מה היית רוצה שאדם שמושך אותך יבין עליך בלי שתצטרך להסביר?",
+ "מה גורם לך לסמוך על מישהו מהר?",
+ "מה הופך סיטואציה נועזת למהנה ולא מביכה?",
+ "מה הדבר שיכול להרוס לך כימיה ברגע?",
+ "מה חשוב לך יותר: תקשורת ישירה או רמזים?",
+ "מה גורם לך להרגיש שמכבדים אותך גם בתוך פלירט נועז?",
+ "מה לדעתך הדרך הכי טובה לבדוק אם כימיה היא הדדית?",
+ "מה הדייט הכי נועז שהיה לך עד היום?",
+ "מה הדבר הכי ספונטני שעשית בגלל משיכה?",
+ "האם אי פעם נשארת במקום רק בגלל שמישהו סיקרן אותך?",
+ "מה המחמאה הכי ישירה שאי פעם אמרת למישהו?",
+ "האם אי פעם מישהו גרם לך להסמיק בלי לגעת בך?",
+ "מה היה הרושם הראשוני הכי מוטעה שהיה לך על מישהו שנמשכת אליו?",
+ "האם אי פעם התחרטת שלא עשית צעד?",
+ "מה הדבר הכי אמיץ שעשית בדייט?",
+ "האם אי פעם פלירט התחיל כבדיחה והפך למשהו אמיתי?",
+ "מה הדבר הכי מפתיע שמישהו עשה כדי למשוך את תשומת הלב שלך?",
+ "האם אי פעם הייתה לך כימיה חזקה עם מישהו מיד?",
+ "מה הדייט הראשון הכי בלתי נשכח שהיה לך?",
+ "האם אי פעם שלחת הודעה נועזת והתחרטת מיד?",
+ "מה המחווה הכי רומנטית או נועזת שעשו בשבילך?",
+ "האם אי פעם נמשכת למישהו רק אחרי שהכרת אותו טוב יותר?",
+ "מה הדבר הכי לא צפוי שגרם לך להימשך למישהו?",
+ "האם אי פעם שינית את דעתך על מישהו אחרי קשר עין אחד?",
+ "מה הדבר הכי נועז שאמרת למישהו פנים מול פנים?",
+ "האם אי פעם מצאת את עצמך מקנא בלי שהתכוונת?",
+ "מה הרגע הכי מביך שהיה לך בזמן פלירט?",
+ "מה הרגע הכי מוצלח שהיה לך בזמן פלירט?",
+ "מה יותר חשוב לך בדייט: מתח, צחוק או שיחה עמוקה?",
+ "איזה סוג של דייט גורם לך להרגיש הכי משוחרר?",
+ "מה המקום האידיאלי מבחינתך לפגישה שמרגישה קצת אסורה?",
+ "מה יותר מושך אותך: ערב מתוכנן או לילה ספונטני?",
+ "מה גורם לדייט להפוך מזיכרון נחמד לזיכרון חזק?",
+ "איזה סוג של מוזיקה הכי מתאים לדעתך לרגע פלרטטני?",
+ "מה יותר מעניין אותך: שיחה אינטימית או פעילות משותפת?",
+ "איזה סוג של הפתעה בדייט היית שמח לקבל?",
+ "מה גורם לך לרצות להישאר עוד שעה במקום לעזוב?",
+ "מה לדעתך הופך אווירה למושכת?",
+ "מה יותר מסקרן אותך: דייט שקט או מסיבה מלאה אנשים?",
+ "מה המקום הכי נועז שהיית יוצא אליו לדייט?",
+ "איזה פרט קטן יכול להפוך ערב רגיל לערב בלתי נשכח?",
+ "מה לדעתך יותר חשוב: המקום או האדם?",
+ "מה סוג הדייט שהיית רוצה לנסות אבל עוד לא ניסית?",
+ "מה גורם לך להרגיש שיש מקום לספונטניות?",
+ "מה היית בוחר: דייט יוקרתי או לילה פשוט עם כימיה חזקה?",
+ "מה לדעתך הרגע שבו דייט מתחיל להרגיש אישי באמת?",
+ "מה הדבר שהכי חשוב לך בסוף דייט טוב?",
+ "מה יגרום לך לרצות להיפגש שוב עם מישהו מיד?",
+ "מה היית מעדיף: נשיקה ראשונה מתוכננת או ספונטנית?",
+ "מה מבחינתך יוצר מתח לפני נשיקה?",
+ "מה יותר מושך אותך: קרבה איטית או מתח מיידי?",
+ "איזה סוג של חיבוק מרגיש לך הכי אינטימי?",
+ "מה הופך קשר עין למשהו שקשה לשכוח?",
+ "מה יותר משמעותי בעיניך: מחמאה על המראה או על האישיות?",
+ "מה הדבר שהכי גורם לך להרגיש שמישהו באמת שם לב אליך?",
+ "מה יותר נועז בעיניך: לומר מה אתה רוצה או לחכות שהשני יבין?",
+ "מה גורם לך להרגיש הכי פתוח לספר משהו אישי?",
+ "מה הדבר שאתה בדרך כלל מסתיר כשאתה נמשך למישהו?",
+ "מה יותר מפחיד אותך: דחייה או להחמיץ הזדמנות?",
+ "מה גורם לך לעשות את הצעד הראשון?",
+ "מה הדבר שיכול לגרום לך לעבור מפלירט קל למשהו רציני יותר?",
+ "מה יותר קשה לך: להתחיל פלירט או לסיים אותו?",
+ "מה הדבר שהיית רוצה להיות יותר אמיץ לגביו במשיכה?",
+ "מה גורם לך להרגיש הכי מושך בעצמך?",
+ "מה הדבר שאתה עושה כשאתה רוצה שמישהו ישים לב אליך?",
+ "מה יותר מסקרן אותך: מה שאדם אומר או מה שהוא לא אומר?",
+ "מה הדבר שאתה הכי אוהב ברגעים של מתח לפני שמתקרבים?"
+];
+// 20 מקומות שמורים לשאלות "כלום" שתנסח בעצמך. הכנס את השאלה בין המרכאות.
+const nothingCustomCards=[
+  "מה צבע התחתונים שלך?", // כלום אישי 01
+  "בחר אחד מהמשתתפים שהכי מושך אותך.", // כלום אישי 02
+  "בחר משתתף וספר איך היית מענג אותו.", // כלום אישי 03
+  "מה קטגוריית הפורנו שאתה הכי אוהב?", // כלום אישי 04
+  "באיזה מקום הכי היית רוצה לקיים יחסים?", // כלום אישי 05
+  "מה הפנטזיה הכמוסה שלך?", // כלום אישי 06
+  "מה אתה הכי אוהב בסקס?", // כלום אישי 07
+  "האם עשית פעם סקס במקום פומבי?", // כלום אישי 08
+  "האם עשית פעם סקס במטוס, כולל אוננות? פרט.", // כלום אישי 09
+  "מה המקום הכי מוזר שעשית בו סקס?", // כלום אישי 10
+  "אם הייתה לך אפשרות, עם איזה סלבריטי היית בוחר לשכב?", // כלום אישי 11
+  "מה הפטיש שלך?", // כלום אישי 12
+  "במה לעולם לא היית מתנסה מבחינה מינית?", // כלום אישי 13
+  "מה היית משנה בגוף שלך אם הייתה לך האפשרות?", // כלום אישי 14
+  "איזו תנוחה אתה הכי אוהב?", // כלום אישי 15
+  "מה לא ניסית בסקס והיית מת לנסות?", // כלום אישי 16
+  "מה הכי מגרה אותך בכל אחד מהמשתתפים?", // כלום אישי 17
+  "באיזה גיל קיימת יחסי מין לראשונה?", // כלום אישי 18
+  "מתי קיימת יחסי מין בפעם האחרונה?", // כלום אישי 19
+  "ספר על החוויה המינית הכי טובה שלך בפירוט." // כלום אישי 20
+];
+const nothingCards=[...nothingBaseCards,...nothingCustomCards];
+const pairWarmupCards=[
+ "עמדו זה מול זה ושמרו על קשר עין במשך 30 שניות בלי לדבר.",
+ "כל אחד אומר לשני דבר אחד שמושך אותו בו.",
+ "לחשו זה לזה מחמאה שאף אחד אחר לא ישמע.",
+ "רקדו יחד ריקוד איטי במשך 30 שניות.",
+ "שבו צמוד זה לזה עד סוף התור הנוכחי.",
+ "כל אחד בוחר מילה אחת שמתארת את הכימיה ביניכם.",
+ "החליפו מבט ארוך של 20 שניות ואז אמרו מה עבר לכם בראש.",
+ "כל אחד מספר מה היה הרושם הראשון שלו על השני.",
+ "תנו זה לזה מחמאה על שפת הגוף.",
+ "שחקו 30 שניות כאילו אתם נפגשים בבר בפעם הראשונה.",
+ "כל אחד אומר מה הדבר הראשון שהיה גורם לו לשים לב לשני.",
+ "עמדו קרוב ככל שנוח לשניכם במשך 20 שניות.",
+ "החליפו משפט פלרטטני אחד כל אחד.",
+ "רקדו יחד בלי לדבר במשך 20 שניות.",
+ "כל אחד נותן לשני כינוי פלרטטני עד סוף הסיבוב.",
+ "ספרו זה לזה איזה סוג דייט היה מתאים לכם יחד.",
+ "כל אחד אומר מה הוא מוצא הכי מסקרן בשני.",
+ "שבו פנים מול פנים והחזיקו קשר עין במשך 15 שניות.",
+ "כל אחד אומר איזה פרט קטן בשני הכי תפס את תשומת הלב שלו.",
+ "לחשו זה לזה משפט שהייתם שולחים אחרי חצות."
+];
+const pairTouchCards=[
+ "אחזו ידיים במשך 30 שניות תוך קשר עין.",
+ "התחבקו במשך 15 שניות אם שניכם מסכימים.",
+ "תנו זה לזה עיסוי כתפיים של 20 שניות.",
+ "אחד מכם נותן לשני נשיקה על היד, אם שניכם מסכימים.",
+ "תנו זה לזה נשיקה על הלחי, אם שניכם מסכימים.",
+ "התקרבו פנים אל פנים ושמרו על המרחק שנוח לשניכם במשך 20 שניות.",
+ "רקדו קרוב במשך 30 שניות כשהידיים על הכתפיים או המותניים, לפי מה שנוח לשניכם.",
+ "אחד מכם מסדר בעדינות לשני את השיער או הצווארון.",
+ "תנו זה לזה עיסוי קצר בכפות הידיים.",
+ "שבו ברך ליד ברך במשך חצי דקה.",
+ "אחזו ידיים בזמן שכל אחד אומר מה הוא מוצא מושך בשני.",
+ "תנו זה לזה חיבוק ואז קשר עין של 10 שניות.",
+ "אחד מכם מניח יד על כתף השני בזמן שהוא נותן לו מחמאה.",
+ "רקדו קרוב במשך 20 שניות בלי להשתמש בידיים.",
+ "אחד מכם מניח יד על המותניים של השני מעל הבגדים למשך 10 שניות, אם נוח לשניכם.",
+ "תנו זה לזה נשיקה קצרה על השפתיים אם שניכם רוצים.",
+ "תנו זה לזה נשיקה של 5 שניות אם שניכם רוצים.",
+ "תנו זה לזה נשיקה של 10 שניות אם שניכם רוצים.",
+ "אחד מכם בוחר אם הנשיקה תהיה על הלחי, המצח או השפתיים.",
+ "תנו זה לזה נשיקה קצרה ואז הביטו זה בזה במשך 10 שניות.",
+ "אחד מכם נותן לשני נשיקה עדינה בצוואר אם שניכם מסכימים.",
+ "רקדו ריקוד איטי וצמוד במשך 45 שניות.",
+ "אחד מכם יושב קרוב מאוד לשני למשך חצי דקה, לפי מה שנוח לשניכם.",
+ "תנו זה לזה עיסוי גב עליון מעל הבגדים במשך 20 שניות.",
+ "אחד מכם אוחז ביד השני ומוביל אותו לסיבוב ריקוד קצר.",
+ "תנו זה לזה שתי נשיקות קצרות בסגנונות שונים.",
+ "אחד מכם בוחר אם לסיים את המשימה בחיבוק או בנשיקה.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר מילה אחת על התחושה.",
+ "אחד מכם מניח את ראשו על כתף השני במשך 20 שניות.",
+ "תנו זה לזה נשיקה של 15 שניות אם שניכם רוצים."
+];
+const pairBoldHeatCards=[
+ "תנו זה לזה נשיקה של 20 שניות אם שניכם רוצים.",
+ "תנו זה לזה נשיקה של 30 שניות אם שניכם רוצים.",
+ "תנו זה לזה נשיקה ארוכה ואז הישארו קרובים עוד 10 שניות.",
+ "רקדו צמוד במשך דקה שלמה.",
+ "אחד מכם בוחר סגנון נשיקה והשני זורם איתו, אם שניכם רוצים.",
+ "תנו זה לזה שלוש נשיקות: קצרה, איטית ומפתיעה.",
+ "אחד מכם נותן לשני נשיקה בצוואר ואז לוחש לו מחמאה.",
+ "תנו זה לזה נשיקה בלי להשתמש בידיים במשך 15 שניות.",
+ "אחד מכם מוביל נשיקה של 20 שניות והשני רק עוקב.",
+ "החליפו נשיקה ואז כל אחד לוחש מה הכי מושך אותו בשני.",
+ "אחד מכם יושב על ברכי השני במשך 20 שניות אם שניכם מרגישים בנוח.",
+ "רקדו צמוד כשהאחד מוביל והשני עוקב במשך 45 שניות.",
+ "אחד מכם נותן לשני עיסוי כתפיים וגב עליון במשך 45 שניות.",
+ "תנו זה לזה נשיקה ואז חיבוק ארוך בלי לדבר.",
+ "אחד מכם בוחר בין נשיקה ארוכה לריקוד צמוד של דקה.",
+ "החליפו מבט של 20 שניות כשאתם עומדים ממש קרוב.",
+ "אחד מכם לוחש לשני מה היה רוצה שיקרה בדייט מושלם.",
+ "תנו זה לזה נשיקה ואז החליפו מקום ישיבה כך שתישארו צמודים.",
+ "אחד מכם נותן לשני שלוש מחמאות, אחת מהן נועזת במיוחד.",
+ "שחקו דקה כאילו אתם שני אנשים שמנסים לפתות זה את זה בלי לומר את המילה 'משיכה'.",
+ "תנו זה לזה נשיקה של 25 שניות ואז חייכו בלי לדבר.",
+ "אחד מכם מניח יד על המותניים של השני מעל הבגדים בזמן קשר עין של 15 שניות.",
+ "רקדו קרוב מאוד במשך 30 שניות כשהקבוצה בוחרת את השיר.",
+ "אחד מכם נותן לשני נשיקה על הצוואר ואז נשיקה על השפתיים, אם שניכם רוצים.",
+ "תנו זה לזה נשיקה והפסיקו בדיוק כשהאחר רוצה להמשיך.",
+ "אחד מכם בוחר איזה סוג נשיקה מתאים לאווירה ביניכם.",
+ "תנו זה לזה נשיקה של 20 שניות כשהידיים נשארות על הכתפיים.",
+ "אחד מכם לוחש לשני פנטזיה כללית שהוא מוכן לשתף.",
+ "שבו צמוד במשך דקה וכל אחד אומר מה הוא היה רוצה לדעת על השני אחרי חצות.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר איזה רגע הערב יצר אצלו הכי הרבה מתח.",
+ "אחד מכם בוחר פריט חיצוני אחד כמו ז'קט, סוודר או אביזר שהשני יכול להסיר אם נוח לו.",
+ "רקדו צמוד במשך דקה כשכל אחד בתורו מוביל ל-30 שניות.",
+ "תנו זה לזה נשיקה ממושכת ואז הישארו במרחק נשימה במשך 10 שניות.",
+ "אחד מכם נותן לשני עיסוי גב עליון במשך דקה מעל הבגדים.",
+ "תנו זה לזה שתי נשיקות איטיות, עם הפסקה של חמש שניות ביניהן.",
+ "אחד מכם בוחר אם המשימה תכלול נשיקה, חיבוק ארוך או ריקוד צמוד.",
+ "עמדו צמוד פנים אל פנים במשך 30 שניות בלי לדבר.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר מה הוא היה עושה כדי להמשיך את הפלירט.",
+ "אחד מכם יושב על ברכי השני בזמן שאתם מחליפים מחמאה אחת כל אחד, אם נוח לשניכם.",
+ "רקדו צמוד במשך 45 שניות כשהידיים נשארות מעל קו המותניים.",
+ "תנו זה לזה נשיקה קצרה בכל פעם שמישהו צוחק במשך 30 שניות.",
+ "אחד מכם נותן לשני נשיקה על היד, הכתף והלחי, לפי מה שנוח לשניכם.",
+ "תנו זה לזה נשיקה ואז שמרו על קשר עין במשך 20 שניות.",
+ "אחד מכם בוחר תנוחה זוגית פלרטטנית ואתם נשארים בה 20 שניות.",
+ "רקדו איטי וצמוד במשך דקה בלי לדבר בכלל.",
+ "תנו זה לזה נשיקה של 30 שניות כשהקבוצה סופרת לאחור.",
+ "אחד מכם לוחש לשני מה הדבר הכי נועז שהוא מוכן לנסות במשחק הערב.",
+ "תנו זה לזה נשיקה ואז כל אחד בוחר מילה אחת שמתארת את המתח ביניכם.",
+ "אחד מכם נותן לשני עיסוי כפות ידיים ואז מחזיק לו את היד במשך 30 שניות.",
+ "תנו זה לזה נשיקה איטית של 20 שניות ואז חיבוק של 10 שניות.",
+ "אחד מכם בוחר אם להסיר פריט חיצוני אחד מעצמו או לתת לשני מחמאה נועזת.",
+ "רקדו צמוד כשהמצח שלכם כמעט נוגע במשך 30 שניות.",
+ "תנו זה לזה נשיקה ואז כל אחד לוחש מה הכי קשה לו להתעלם ממנו אצל השני.",
+ "אחד מכם מוביל ריקוד איטי כשיד אחת על המותניים של השני מעל הבגדים.",
+ "תנו זה לזה שלוש נשיקות קצרות ברצף ואז קשר עין של 10 שניות.",
+ "אחד מכם בוחר אם הנשיקה הבאה תהיה קצרה, איטית או ממושכת.",
+ "שבו צמוד במשך דקה כשהידיים שלובות.",
+ "תנו זה לזה נשיקה ואז החליפו תפקידים: מי שהוביל עכשיו רק עוקב.",
+ "אחד מכם נותן לשני נשיקה בצוואר או בלחי, לבחירת המקבל.",
+ "רקדו צמוד במשך 30 שניות ואז הישארו בחיבוק עוד 15 שניות.",
+ "תנו זה לזה נשיקה כשאחד מכם עוצם עיניים והשני מוביל, אם שניכם רוצים.",
+ "אחד מכם לוחש לשני מה היה גורם לו לרצות להישאר איתו לבד עוד שעה.",
+ "תנו זה לזה נשיקה של 20 שניות ואז כל אחד אומר מה היה רוצה לשמוע מהשני.",
+ "אחד מכם בוחר פריט חיצוני אחד ששניכם יכולים להסיר אם שניכם מרגישים בנוח.",
+ "רקדו צמוד במשך דקה והחליפו מוביל באמצע בלי לעצור.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר איזה סוג מגע הכי נעים לו באופן כללי.",
+ "אחד מכם מניח יד על הכתף או המותניים של השני בזמן שהשני לוחש לו מחמאה.",
+ "תנו זה לזה נשיקה איטית של 25 שניות בלי להתרחק ביניהן.",
+ "אחד מכם בוחר אם לסיים את המשימה בנשיקה נוספת או בחיבוק של 20 שניות.",
+ "שחקו דקה כאילו אתם נפגשים בסתר אחרי תקופה ארוכה.",
+ "תנו זה לזה נשיקה ואז כל אחד מספר על רגע שבו הרגיש כימיה מיידית.",
+ "אחד מכם מוביל את השני בריקוד צמוד במשך דקה כשהשני לא מדבר.",
+ "תנו זה לזה נשיקה של 20 שניות ואז הישארו מחובקים עד סוף הספירה לעשר.",
+ "אחד מכם נותן לשני עיסוי כתפיים בזמן שהוא לוחש לו משהו פלרטטני.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר מה הוא היה רוצה שהשני יעשה יותר בדייט.",
+ "רקדו צמוד במשך 45 שניות ואז תנו זה לזה נשיקה קצרה אם שניכם רוצים.",
+ "אחד מכם בוחר בין נשיקה ארוכה, חיבוק צמוד או דקה של קשר עין מקרוב.",
+ "תנו זה לזה נשיקה של 30 שניות ואז הישארו קרובים בלי לדבר עוד 15 שניות.",
+ "אחד מכם לוחש לשני את המשפט הכי נועז שהוא מוכן לומר לו כרגע.",
+ "תנו זה לזה נשיקה ארוכה ואז בחרו יחד אם לסיים בחיבוק או בריקוד צמוד קצר."
+];
+// 20 מקומות שמורים למשימות זוגיות אקסטרים שתנסח בעצמך.
+const pairExtremeCards=[
+  "", // זוג אקסטרים 01
+  "", // זוג אקסטרים 02
+  "", // זוג אקסטרים 03
+  "", // זוג אקסטרים 04
+  "", // זוג אקסטרים 05
+  "", // זוג אקסטרים 06
+  "", // זוג אקסטרים 07
+  "", // זוג אקסטרים 08
+  "", // זוג אקסטרים 09
+  "", // זוג אקסטרים 10
+  "", // זוג אקסטרים 11
+  "", // זוג אקסטרים 12
+  "", // זוג אקסטרים 13
+  "", // זוג אקסטרים 14
+  "", // זוג אקסטרים 15
+  "", // זוג אקסטרים 16
+  "", // זוג אקסטרים 17
+  "", // זוג אקסטרים 18
+  "", // זוג אקסטרים 19
+  "" // זוג אקסטרים 20
+];
+const pairCards=[...pairWarmupCards,...pairTouchCards,...pairBoldHeatCards,...pairExtremeCards];
+function pairCardsForCurrentHeat(){
+  const level=currentHeatLevel();
+  if(level===1) return pairWarmupCards;
+  if(level===2) return pairTouchCards;
+  if(level===3) return pairBoldHeatCards;
+  const extreme=pairExtremeCards.filter(x=>typeof x==='string'&&x.trim());
+  return extreme.length ? extreme : pairBoldHeatCards;
+}
+function pairHeatName(){
+  const level=currentHeatLevel();
+  if(level===1) return 'חימום';
+  if(level===2) return 'נשיקות ומגע';
+  if(level===3) return 'נועז';
+  return pairExtremeCards.some(x=>typeof x==='string'&&x.trim()) ? 'אקסטרים' : 'נועז';
+}
+const boldHeat1Cards=[
+ "עמדו זה מול זה ושמרו על קשר עין במשך 30 שניות בלי לדבר. בסיום שמרו על קשר עין עוד 5 שניות.",
+ "כל אחד אומר לשני דבר אחד שמושך אותו בו. בצעו את זה בלי לדבר.",
+ "לחשו זה לזה מחמאה שאף אחד אחר לא ישמע. בסיום כל אחד אומר מילה אחת על הכימיה ביניכם.",
+ "רקדו יחד ריקוד איטי במשך 30 שניות. עשו את זה לאט ובלי למהר.",
+ "שבו צמוד זה לזה עד סוף התור הנוכחי. בסיום שמרו על קשר עין עוד 5 שניות.",
+ "כל אחד בוחר מילה אחת שמתארת את הכימיה ביניכם. בצעו את זה בלי לדבר.",
+ "החליפו מבט ארוך של 20 שניות ואז אמרו מה עבר לכם בראש. בסיום כל אחד אומר מילה אחת על הכימיה ביניכם.",
+ "כל אחד מספר מה היה הרושם הראשון שלו על השני. עשו את זה לאט ובלי למהר.",
+ "תנו זה לזה מחמאה על שפת הגוף. בסיום שמרו על קשר עין עוד 5 שניות.",
+ "שחקו 30 שניות כאילו אתם נפגשים בבר בפעם הראשונה. בצעו את זה בלי לדבר.",
+ "כל אחד אומר מה הדבר הראשון שהיה גורם לו לשים לב לשני. בסיום כל אחד אומר מילה אחת על הכימיה ביניכם.",
+ "עמדו קרוב ככל שנוח לשניכם במשך 20 שניות. עשו את זה לאט ובלי למהר.",
+ "החליפו משפט פלרטטני אחד כל אחד. בסיום שמרו על קשר עין עוד 5 שניות.",
+ "רקדו יחד בלי לדבר במשך 20 שניות. בצעו את זה בלי לדבר.",
+ "כל אחד נותן לשני כינוי פלרטטני עד סוף הסיבוב. בסיום כל אחד אומר מילה אחת על הכימיה ביניכם.",
+ "ספרו זה לזה איזה סוג דייט היה מתאים לכם יחד. עשו את זה לאט ובלי למהר.",
+ "כל אחד אומר מה הוא מוצא הכי מסקרן בשני. בסיום שמרו על קשר עין עוד 5 שניות.",
+ "שבו פנים מול פנים והחזיקו קשר עין במשך 15 שניות. בצעו את זה בלי לדבר.",
+ "כל אחד אומר איזה פרט קטן בשני הכי תפס את תשומת הלב שלו. בסיום כל אחד אומר מילה אחת על הכימיה ביניכם.",
+ "לחשו זה לזה משפט שהייתם שולחים אחרי חצות. עשו את זה לאט ובלי למהר."
+];
+const boldHeat2Cards=[
+ "אחזו ידיים במשך 30 שניות תוך קשר עין. בסיום הישארו קרובים עוד 5 שניות.",
+ "התחבקו במשך 15 שניות אם שניכם מסכימים. בסיום החליפו מחמאה אחת.",
+ "תנו זה לזה עיסוי כתפיים של 20 שניות. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "אחד מכם נותן לשני נשיקה על היד, אם שניכם מסכימים. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "תנו זה לזה נשיקה על הלחי, אם שניכם מסכימים. בסיום הישארו קרובים עוד 5 שניות.",
+ "התקרבו פנים אל פנים ושמרו על המרחק שנוח לשניכם במשך 20 שניות. בסיום החליפו מחמאה אחת.",
+ "רקדו קרוב במשך 30 שניות כשהידיים על הכתפיים או המותניים, לפי מה שנוח לשניכם. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "אחד מכם מסדר בעדינות לשני את השיער או הצווארון. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "תנו זה לזה עיסוי קצר בכפות הידיים. בסיום הישארו קרובים עוד 5 שניות.",
+ "שבו ברך ליד ברך במשך חצי דקה. בסיום החליפו מחמאה אחת.",
+ "אחזו ידיים בזמן שכל אחד אומר מה הוא מוצא מושך בשני. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "תנו זה לזה חיבוק ואז קשר עין של 10 שניות. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "אחד מכם מניח יד על כתף השני בזמן שהוא נותן לו מחמאה. בסיום הישארו קרובים עוד 5 שניות.",
+ "רקדו קרוב במשך 20 שניות בלי להשתמש בידיים. בסיום החליפו מחמאה אחת.",
+ "אחד מכם מניח יד על המותניים של השני מעל הבגדים למשך 10 שניות, אם נוח לשניכם. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "תנו זה לזה נשיקה קצרה על השפתיים אם שניכם רוצים. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "תנו זה לזה נשיקה של 5 שניות אם שניכם רוצים. בסיום הישארו קרובים עוד 5 שניות.",
+ "תנו זה לזה נשיקה של 10 שניות אם שניכם רוצים. בסיום החליפו מחמאה אחת.",
+ "אחד מכם בוחר אם הנשיקה תהיה על הלחי, המצח או השפתיים. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "תנו זה לזה נשיקה קצרה ואז הביטו זה בזה במשך 10 שניות. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "אחד מכם נותן לשני נשיקה עדינה בצוואר אם שניכם מסכימים. בסיום הישארו קרובים עוד 5 שניות.",
+ "רקדו ריקוד איטי וצמוד במשך 45 שניות. בסיום החליפו מחמאה אחת.",
+ "אחד מכם יושב קרוב מאוד לשני למשך חצי דקה, לפי מה שנוח לשניכם. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "תנו זה לזה עיסוי גב עליון מעל הבגדים במשך 20 שניות. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "אחד מכם אוחז ביד השני ומוביל אותו לסיבוב ריקוד קצר. בסיום הישארו קרובים עוד 5 שניות.",
+ "תנו זה לזה שתי נשיקות קצרות בסגנונות שונים. בסיום החליפו מחמאה אחת.",
+ "אחד מכם בוחר אם לסיים את המשימה בחיבוק או בנשיקה. עשו את זה תוך קשר עין ככל שנוח לכם.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר מילה אחת על התחושה. בסיום בחרו אם להישאר בחיבוק עוד 5 שניות.",
+ "אחד מכם מניח את ראשו על כתף השני במשך 20 שניות. בסיום הישארו קרובים עוד 5 שניות.",
+ "תנו זה לזה נשיקה של 15 שניות אם שניכם רוצים. בסיום החליפו מחמאה אחת."
+];
+const boldHeat3Cards=[
+ "תנו זה לזה נשיקה של 20 שניות אם שניכם רוצים. בסיום הישארו קרובים עוד 10 שניות.",
+ "תנו זה לזה נשיקה של 30 שניות אם שניכם רוצים. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ארוכה ואז הישארו קרובים עוד 10 שניות. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "רקדו צמוד במשך דקה שלמה. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "אחד מכם בוחר סגנון נשיקה והשני זורם איתו, אם שניכם רוצים. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה שלוש נשיקות: קצרה, איטית ומפתיעה. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם נותן לשני נשיקה בצוואר ואז לוחש לו מחמאה. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה בלי להשתמש בידיים במשך 15 שניות. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם מוביל נשיקה של 20 שניות והשני רק עוקב. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "החליפו נשיקה ואז כל אחד לוחש מה הכי מושך אותו בשני. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "אחד מכם יושב על ברכי השני במשך 20 שניות אם שניכם מרגישים בנוח. בסיום הישארו קרובים עוד 10 שניות.",
+ "רקדו צמוד כשהאחד מוביל והשני עוקב במשך 45 שניות. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "אחד מכם נותן לשני עיסוי כתפיים וגב עליון במשך 45 שניות. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "תנו זה לזה נשיקה ואז חיבוק ארוך בלי לדבר. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "אחד מכם בוחר בין נשיקה ארוכה לריקוד צמוד של דקה. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "החליפו מבט של 20 שניות כשאתם עומדים ממש קרוב. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם לוחש לשני מה היה רוצה שיקרה בדייט מושלם. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ואז החליפו מקום ישיבה כך שתישארו צמודים. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם נותן לשני שלוש מחמאות, אחת מהן נועזת במיוחד. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "שחקו דקה כאילו אתם שני אנשים שמנסים לפתות זה את זה בלי לומר את המילה 'משיכה'. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה נשיקה של 25 שניות ואז חייכו בלי לדבר. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם מניח יד על המותניים של השני מעל הבגדים בזמן קשר עין של 15 שניות. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "רקדו קרוב מאוד במשך 30 שניות כשהקבוצה בוחרת את השיר. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם נותן לשני נשיקה על הצוואר ואז נשיקה על השפתיים, אם שניכם רוצים. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה נשיקה והפסיקו בדיוק כשהאחר רוצה להמשיך. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "אחד מכם בוחר איזה סוג נשיקה מתאים לאווירה ביניכם. בסיום הישארו קרובים עוד 10 שניות.",
+ "תנו זה לזה נשיקה של 20 שניות כשהידיים נשארות על הכתפיים. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "אחד מכם לוחש לשני פנטזיה כללית שהוא מוכן לשתף. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "שבו צמוד במשך דקה וכל אחד אומר מה הוא היה רוצה לדעת על השני אחרי חצות. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר איזה רגע הערב יצר אצלו הכי הרבה מתח. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "אחד מכם בוחר פריט חיצוני אחד כמו ז'קט, סוודר או אביזר שהשני יכול להסיר אם נוח לו. בסיום הישארו קרובים עוד 10 שניות.",
+ "רקדו צמוד במשך דקה כשכל אחד בתורו מוביל ל-30 שניות. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ממושכת ואז הישארו במרחק נשימה במשך 10 שניות. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם נותן לשני עיסוי גב עליון במשך דקה מעל הבגדים. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה שתי נשיקות איטיות, עם הפסקה של חמש שניות ביניהן. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "אחד מכם בוחר אם המשימה תכלול נשיקה, חיבוק ארוך או ריקוד צמוד. בסיום הישארו קרובים עוד 10 שניות.",
+ "עמדו צמוד פנים אל פנים במשך 30 שניות בלי לדבר. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר מה הוא היה עושה כדי להמשיך את הפלירט. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם יושב על ברכי השני בזמן שאתם מחליפים מחמאה אחת כל אחד, אם נוח לשניכם. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "רקדו צמוד במשך 45 שניות כשהידיים נשארות מעל קו המותניים. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה נשיקה קצרה בכל פעם שמישהו צוחק במשך 30 שניות. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם נותן לשני נשיקה על היד, הכתף והלחי, לפי מה שנוח לשניכם. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ואז שמרו על קשר עין במשך 20 שניות. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם בוחר תנוחה זוגית פלרטטנית ואתם נשארים בה 20 שניות. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "רקדו איטי וצמוד במשך דקה בלי לדבר בכלל. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה נשיקה של 30 שניות כשהקבוצה סופרת לאחור. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם לוחש לשני מה הדבר הכי נועז שהוא מוכן לנסות במשחק הערב. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ואז כל אחד בוחר מילה אחת שמתארת את המתח ביניכם. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם נותן לשני עיסוי כפות ידיים ואז מחזיק לו את היד במשך 30 שניות. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה נשיקה איטית של 20 שניות ואז חיבוק של 10 שניות. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "אחד מכם בוחר אם להסיר פריט חיצוני אחד מעצמו או לתת לשני מחמאה נועזת. בסיום הישארו קרובים עוד 10 שניות.",
+ "רקדו צמוד כשהמצח שלכם כמעט נוגע במשך 30 שניות. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ואז כל אחד לוחש מה הכי קשה לו להתעלם ממנו אצל השני. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם מוביל ריקוד איטי כשיד אחת על המותניים של השני מעל הבגדים. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה שלוש נשיקות קצרות ברצף ואז קשר עין של 10 שניות. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "אחד מכם בוחר אם הנשיקה הבאה תהיה קצרה, איטית או ממושכת. בסיום הישארו קרובים עוד 10 שניות.",
+ "שבו צמוד במשך דקה כשהידיים שלובות. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה ואז החליפו תפקידים: מי שהוביל עכשיו רק עוקב. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם נותן לשני נשיקה בצוואר או בלחי, לבחירת המקבל. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "רקדו צמוד במשך 30 שניות ואז הישארו בחיבוק עוד 15 שניות. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה נשיקה כשאחד מכם עוצם עיניים והשני מוביל, אם שניכם רוצים. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם לוחש לשני מה היה גורם לו לרצות להישאר איתו לבד עוד שעה. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה של 20 שניות ואז כל אחד אומר מה היה רוצה לשמוע מהשני. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם בוחר פריט חיצוני אחד ששניכם יכולים להסיר אם שניכם מרגישים בנוח. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "רקדו צמוד במשך דקה והחליפו מוביל באמצע בלי לעצור. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר איזה סוג מגע הכי נעים לו באופן כללי. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם מניח יד על הכתף או המותניים של השני בזמן שהשני לוחש לו מחמאה. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה איטית של 25 שניות בלי להתרחק ביניהן. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם בוחר אם לסיים את המשימה בנשיקה נוספת או בחיבוק של 20 שניות. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "שחקו דקה כאילו אתם נפגשים בסתר אחרי תקופה ארוכה. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "תנו זה לזה נשיקה ואז כל אחד מספר על רגע שבו הרגיש כימיה מיידית. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם מוביל את השני בריקוד צמוד במשך דקה כשהשני לא מדבר. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה של 20 שניות ואז הישארו מחובקים עד סוף הספירה לעשר. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם נותן לשני עיסוי כתפיים בזמן שהוא לוחש לו משהו פלרטטני. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה נשיקה ואז כל אחד אומר מה הוא היה רוצה שהשני יעשה יותר בדייט. בסיום שמרו על קשר עין עוד 10 שניות.",
+ "רקדו צמוד במשך 45 שניות ואז תנו זה לזה נשיקה קצרה אם שניכם רוצים. בסיום הישארו קרובים עוד 10 שניות.",
+ "אחד מכם בוחר בין נשיקה ארוכה, חיבוק צמוד או דקה של קשר עין מקרוב. בצעו את זה כשהקבוצה סופרת לאחור.",
+ "תנו זה לזה נשיקה של 30 שניות ואז הישארו קרובים בלי לדבר עוד 15 שניות. בסיום כל אחד לוחש לשני מחמאה נועזת.",
+ "אחד מכם לוחש לשני את המשפט הכי נועז שהוא מוכן לומר לו כרגע. בצעו את זה בלי לדבר לפני או אחרי במשך 5 שניות.",
+ "תנו זה לזה נשיקה ארוכה ואז בחרו יחד אם לסיים בחיבוק או בריקוד צמוד קצר. בסיום שמרו על קשר עין עוד 10 שניות."
+];
+// 20 מקומות שמורים לרמת אקסטרים שתנסח בעצמך.
+const boldExtremeCards=[
+  "", // נועז אקסטרים 01
+  "", // נועז אקסטרים 02
+  "", // נועז אקסטרים 03
+  "", // נועז אקסטרים 04
+  "", // נועז אקסטרים 05
+  "", // נועז אקסטרים 06
+  "", // נועז אקסטרים 07
+  "", // נועז אקסטרים 08
+  "", // נועז אקסטרים 09
+  "", // נועז אקסטרים 10
+  "", // נועז אקסטרים 11
+  "", // נועז אקסטרים 12
+  "", // נועז אקסטרים 13
+  "", // נועז אקסטרים 14
+  "", // נועז אקסטרים 15
+  "", // נועז אקסטרים 16
+  "", // נועז אקסטרים 17
+  "", // נועז אקסטרים 18
+  "", // נועז אקסטרים 19
+  "" // נועז אקסטרים 20
+];
+const boldCards=[...boldHeat1Cards,...boldHeat2Cards,...boldHeat3Cards,...boldExtremeCards];
+function boldCardsForCurrentHeat(){
+  const level=currentHeatLevel();
+  if(level===1) return boldHeat1Cards;
+  if(level===2) return boldHeat2Cards;
+  if(level===3) return boldHeat3Cards;
+  const extreme=boldExtremeCards.filter(x=>typeof x==='string'&&x.trim());
+  return extreme.length ? extreme : boldHeat3Cards;
+}
+function boldHeatName(){
+  const level=currentHeatLevel();
+  if(level===1) return 'פלירט';
+  if(level===2) return 'נשיקות ומגע';
+  if(level===3) return 'נועז';
+  return boldExtremeCards.some(x=>typeof x==='string'&&x.trim()) ? 'אקסטרים' : 'נועז';
+}
+function showTruthCard(title='אמת'){
+  // אמת = שאלות. משתמש באותו מאגר של "כלום", כך שאין חזרות בין אמת לכלום.
+  showUniqueCard(title,'nothing',nothingCards,'nothing');
+}
+function showDareCard(title='חובה'){
+  // חובה = משימות. משתמש במאגר "הכל" לפי רמת החום הנוכחית.
+  const source=allCardsForCurrentHeat();
+  let card=drawUnique('all',source);
+
+  if(card===null){
+    const fallback=allCards.filter(x=>typeof x==='string'&&x.trim());
+    card=drawUnique('all',fallback);
+    if(card===null){
+      showInfo(title,'כל המשימות הזמינות כבר הופיעו במשחק הנוכחי.');
+      return;
+    }
+    showCard(`${title} · ${heatName()}`,card,'all','all',fallback);
+    return;
+  }
+
+  showCard(`${title} · ${heatName()}`,card,'all','all',source);
+}
+const aonAll=['בחר משתתף ובצעו יחד משימה נועזת מהמאגר.','בחר משתתף למשימה הבאה והחליטו יחד איך לבצע אותה.'];
+const aonNothing=['מה הדבר הכי נועז שעשית בדייט?','מה הסיטואציה שהכי יכולה ליצור אצלך מתח מיני?'];
+
+function tile(k,t,i){return {k,t,i}}
+const seq=[
+ tile('start','התחלה','▶'),
+ // bottom row: 1-15, left -> right
+ tile('nothing','כלום','?'),
+ tile('all','הכל','🃏'),
+ tile('wheel','גלגל','🎡'),
+ tile('nothing','כלום','?'),
+ tile('choose','בחר שחקן','👥'),
+ tile('all','הכל','🃏'),
+ tile('immune','חסינות','🛡'),
+ tile('nothing','כלום','?'),
+ tile('extra','תור נוסף','🎲'),
+ tile('all','הכל','🃏'),
+ tile('swap','החלפת מקום','↔'),
+ tile('nothing','כלום','?'),
+ tile('wheel','גלגל','🎡'),
+ tile('all','הכל','🃏'),
+
+ // right side: 16-29, bottom -> top
+ tile('lose','הפסד תור','⊘'),
+ tile('nothing','כלום','?'),
+ tile('all','הכל','🃏'),
+ tile('choose','בחר שחקן','👥'),
+ tile('immune','חסינות','🛡'),
+ tile('nothing','כלום','?'),
+ tile('all','הכל','🃏'),
+ tile('forward2','זוז 2 קדימה','»'),
+ tile('wheel','גלגל','🎡'),
+ tile('nothing','כלום','?'),
+ tile('all','הכל','🃏'),
+ tile('extra','תור נוסף','🎲'),
+ tile('choose','בחר שחקן','👥'),
+ tile('reset','חזרה להתחלה','⌂'),
+
+ // top row: 30-43, right -> left
+ tile('all','הכל','🃏'),
+ tile('nothing','כלום','?'),
+ tile('immune','חסינות','🛡'),
+ tile('wheel','גלגל','🎡'),
+ tile('all','הכל','🃏'),
+ tile('choose','בחר שחקן','👥'),
+ tile('nothing','כלום','?'),
+ tile('forward2','זוז 2 קדימה','»'),
+ tile('all','הכל','🃏'),
+ tile('lose','הפסד תור','⊘'),
+ tile('nothing','כלום','?'),
+ tile('wheel','גלגל','🎡'),
+ tile('all','הכל','🃏'),
+ tile('immune','חסינות','🛡'),
+
+ // left side: 44-56, top -> bottom
+ tile('nothing','כלום','?'),
+ tile('choose','בחר שחקן','👥'),
+ tile('all','הכל','🃏'),
+ tile('back3board','זוז 3 אחורה','↩'),
+ tile('nothing','כלום','?'),
+ tile('extra','תור נוסף','🎲'),
+ tile('all','הכל','🃏'),
+ tile('swap','החלפת מקום','↔'),
+ tile('nothing','כלום','?'),
+ tile('nothing','כלום','?'),
+ tile('all','הכל','🃏'),
+ tile('lose','הפסד תור','⊘'),
+ tile('back3board','זוז 3 אחורה','↩')
+];
+
+function setMode(mode){
+  if(!['straight','gay','bi'].includes(mode)) return;
+  gameMode=mode;
+
+  const ids={
+    straight:'modeStraight',
+    gay:'modeGay',
+    bi:'modeBi'
+  };
+
+  document.querySelectorAll('.seg').forEach(btn=>{
+    btn.classList.remove('active');
+    btn.setAttribute('aria-pressed','false');
+  });
+
+  const active=document.getElementById(ids[mode]);
+  if(active){
+    active.classList.add('active');
+    active.setAttribute('aria-pressed','true');
+  }
+}
+function fitGameToViewport(){
+  const game=document.getElementById('screenGame');
+  const board=document.getElementById('board');
+  if(!game||!board||game.classList.contains('hidden')) return;
+
+  const vw=window.innerWidth;
+  const vh=window.innerHeight;
+  const sideLayout=(vw>=640 && vw>vh);
+  let size;
+
+  if(sideLayout){
+    const sideMin=Math.min(390,Math.max(260,Math.round(vw*0.34)));
+    size=Math.min(vh-8,vw-sideMin-20);
+  }else{
+    const top=game.querySelector('.topbar');
+    const playersBar=document.getElementById('playerStrip');
+    const action=document.body.classList.contains('modal-open') ? document.getElementById('modalHost') : game.querySelector('.controls');
+    const topH=top ? top.getBoundingClientRect().height : 44;
+    const playersH=playersBar ? playersBar.getBoundingClientRect().height : 40;
+    const actionH=action ? action.getBoundingClientRect().height : 118;
+    const availableH=vh-8-topH-playersH-actionH-16;
+    const availableW=vw-8;
+    size=Math.min(availableW,availableH);
+  }
+
+  size=Math.max(190,Math.floor(size));
+  game.style.setProperty('--board-size',size+'px');
+  requestAnimationFrame(fitBoardTypography);
+  setTimeout(fitBoardTypography,60);
+}
+window.addEventListener('resize',()=>requestAnimationFrame(fitGameToViewport));
+window.addEventListener('orientationchange',()=>setTimeout(fitGameToViewport,120));
+
+function goSetup(){document.getElementById('screenStart').classList.add('hidden');document.getElementById('screenSetup').classList.remove('hidden');if(!players.length){players=[mkPlayer('','m',0),mkPlayer('','f',1),mkPlayer('','m',2),mkPlayer('','f',3)];renderEditors()}}
+function mkPlayer(name,gender,idx){return {name,gender,color:COLORS[idx%COLORS.length],pos:0,immunity:0,loseNext:false}}
+function addPlayer(){if(players.length>=8)return alert('בגרסת הבדיקה: עד 8 משתתפים');players.push(mkPlayer('',players.length%2?'f':'m',players.length));renderEditors()}
+function removePlayer(i){if(players.length<=2)return alert('צריך לפחות 2 משתתפים');players.splice(i,1);players.forEach((p,n)=>p.color=COLORS[n%COLORS.length]);renderEditors()}
+function renderEditors(){const h=document.getElementById('playersEditor');h.innerHTML='';players.forEach((p,i)=>{let d=document.createElement('div');d.className='player-editor';d.innerHTML=`<input value="${esc(p.name)}" placeholder="שם משתתף ${i+1}" autocomplete="off" oninput="players[${i}].name=this.value"><select onchange="players[${i}].gender=this.value"><option value="m" ${p.gender==='m'?'selected':''}>גבר</option><option value="f" ${p.gender==='f'?'selected':''}>אישה</option></select><button class="remove" onclick="removePlayer(${i})">×</button>`;h.appendChild(d)})}
+function startGame(){resetCardHistory();completedTurns=0;taskReplacementFor={};players=players.filter(p=>p.name.trim());if(players.length<2)return alert('צריך לפחות 2 משתתפים עם שם');players.forEach((p,n)=>{p.color=COLORS[n%COLORS.length];p.pos=0;p.immunity=0;p.loseNext=false});current=Math.floor(Math.random()*players.length);busy=false;extraTurn=false;document.getElementById('screenSetup').classList.add('hidden');document.getElementById('screenGame').classList.remove('hidden');document.body.classList.add('game-active');buildBoard();log(`ההגרלה קבעה: ${players[current].name} מתחיל.`);updateUI();requestAnimationFrame(fitGameToViewport);setTimeout(()=>speakHebrew(`עכשיו התור של ${players[current].name}.`,true),180);skipIfNeeded()}
+function newGame(){if(confirm('להתחיל משחק חדש?')){document.body.classList.remove('game-active','modal-open');document.getElementById('screenGame').classList.add('hidden');document.getElementById('screenSetup').classList.remove('hidden');document.getElementById('modalHost').innerHTML='';renderEditors()}}
+
+function positions(){
+  const ps=[];
+  for(let c=0;c<15;c++) ps.push([14,c]);      // bottom row, 15 spaces כולל פינות
+  for(let r=13;r>=0;r--) ps.push([r,14]);     // right side, 14 spaces עד הפינה העליונה
+  for(let c=13;c>=0;c--) ps.push([0,c]);      // top row, 14 spaces עד הפינה השמאלית
+  for(let r=1;r<=13;r++) ps.push([r,0]);      // left side, 13 spaces חזרה להתחלה-1
+  return ps;                                   // total = 56
+}
+
+function buildBoard(){
+  const g=document.getElementById('boardGrid');
+  g.innerHTML='';
+  const ps=positions();
+
+  seq.forEach((s,i)=>{
+    const rc=ps[i];
+    const d=document.createElement('div');
+    d.id='tile'+i;
+    d.className='tile board-tile '+s.k;
+    d.style.gridRow=(rc[0]+1);
+    d.style.gridColumn=(rc[1]+1);
+
+    const icon=document.createElement('div');
+    icon.className='ico';
+    icon.textContent=s.i||'';
+
+    const label=document.createElement('div');
+    label.className='lbl';
+    label.textContent=s.t;
+
+    const inner=document.createElement('div');
+    inner.className='tile-inner';
+    inner.appendChild(icon);
+    inner.appendChild(label);
+    d.appendChild(inner);
+    g.appendChild(d);
+  });
+
+  renderPawns();
+  requestAnimationFrame(renderPawns);
+}
+
+function renderPawns(){
+  const layer=document.getElementById('markerLayer');
+  if(!layer)return;
+  layer.innerHTML='';
+  const ps=positions();
+  const grouped={};
+
+  players.forEach((p,i)=>{
+    if(!grouped[p.pos])grouped[p.pos]=[];
+    grouped[p.pos].push({p,i});
+  });
+
+  Object.keys(grouped).forEach(k=>{
+    const pos=Number(k);
+    const rc=ps[pos];
+    if(!rc)return;
+
+    const cell=document.createElement('div');
+    cell.className='marker-cell grid-marker';
+    cell.style.gridRow=(rc[0]+1);
+    cell.style.gridColumn=(rc[1]+1);
+
+    grouped[pos].forEach(({p,i})=>{
+      const dot=document.createElement('span');
+      dot.className='player-dot'+(i===current?' current-dot':'');
+      dot.title=p.name;
+      dot.setAttribute('aria-label',p.name);
+      dot.style.backgroundColor=p.color;
+      dot.style.boxShadow=`0 0 0 1px rgba(0,0,0,.9),0 0 10px ${p.color},0 2px 4px rgba(0,0,0,.9)`;
+      cell.appendChild(dot);
+    });
+
+    layer.appendChild(cell);
+  });
+}
+function updateUI(){let p=players[current];document.getElementById('turnLabel').textContent='התור של '+p.name;document.getElementById('turnStatus').textContent=`משבצת ${p.pos+1} · חסינות: ${p.immunity} · 🔥 ${heatName()} · סיבוב ${roundNumber()}`;document.getElementById('playerStrip').innerHTML=players.map((x,i)=>`<div class="pchip ${i===current?'active':''}"><div class="pname"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${x.color}"></span> ${esc(x.name)}</div><div class="pmeta">מיקום ${x.pos+1} · 🛡 ${x.immunity}${x.loseNext?' · ⛔ תור הבא':''}</div></div>`).join('');renderPawns()}
+
+let voiceEnabled=true,voiceQueue=[],voiceSpeaking=false,heVoice=null;
+function loadHebrewVoice(){
+  if(!('speechSynthesis' in window))return;
+  let vs=window.speechSynthesis.getVoices();
+  let heb=vs.filter(v=>/^he([-_]|$)/i.test(v.lang)||/Hebrew|עברית/i.test(v.name));
+  heVoice=heb.find(v=>/Google|Samsung|Natural|Premium/i.test(v.name))||heb[0]||null;
+}
+if('speechSynthesis' in window){
+  loadHebrewVoice();
+  window.speechSynthesis.onvoiceschanged=loadHebrewVoice;
+}else{
+  voiceEnabled=false;
+  window.addEventListener('load',()=>{
+    const b=document.getElementById('voiceBtn');
+    if(b)b.textContent='🔇 קול לא זמין ב־WebView';
+  });
+}
+function cleanForSpeech(t){
+  return String(t)
+    .replace(/<[^>]+>/g,' ')
+    .replace(/[🎲🛡️⛔❤️💋🎭🔄🍀👥👑]/g,' ')
+    .replace(/נחת\/ה/g,'נחת')
+    .replace(/זרק\/ה/g,'זרק')
+    .replace(/מתחיל\/ה/g,'מתחיל')
+    .replace(/מקבל\/ת/g,'מקבל')
+    .replace(/מפסיד\/ה/g,'מפסיד')
+    .replace(/דולג\/ה/g,'דולג')
+    .replace(/\s+/g,' ').trim();
+}
+function speakHebrew(text,priority=false){
+  if(!voiceEnabled||!('speechSynthesis' in window))return;
+  let t=cleanForSpeech(text);
+  if(!t)return;
+
+  if(priority){
+    voiceQueue=[];
+    voiceSpeaking=false;
+    window.speechSynthesis.cancel();
+  }else{
+    // Avoid long audio backlog: keep only the two newest queued announcements.
+    if(voiceQueue.length>=2) voiceQueue=voiceQueue.slice(-1);
+  }
+
+  voiceQueue.push(t);
+  processVoiceQueue();
+}
+function processVoiceQueue(){
+  if(voiceSpeaking||!voiceQueue.length||!voiceEnabled)return;
+  voiceSpeaking=true;
+  let u=new SpeechSynthesisUtterance(voiceQueue.shift());
+  u.lang='he-IL';
+  u.rate=1.0;
+  u.pitch=1;
+  u.volume=1;
+  if(heVoice)u.voice=heVoice;
+  u.onend=u.onerror=()=>{
+    voiceSpeaking=false;
+    setTimeout(processVoiceQueue,25);
+  };
+  window.speechSynthesis.speak(u);
+}
+function toggleVoice(){
+  voiceEnabled=!voiceEnabled;
+  let b=document.getElementById('voiceBtn');
+  if(b)b.textContent=voiceEnabled?'🔊 קול פעיל':'🔇 קול כבוי';
+  if(!voiceEnabled&&'speechSynthesis' in window){
+    voiceQueue=[];
+    voiceSpeaking=false;
+    window.speechSynthesis.cancel();
+  }else if(voiceEnabled){
+    speakHebrew('הקול פעיל',true);
+  }
+}
+
+function log(msg,say=true){
+  if(say)speakHebrew(msg);
+}
+function sound(freq=440,dur=.08){try{let a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;g.gain.value=.04;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+dur)}catch(e){}}
+function rollDice(){if(busy)return;let es=document.getElementById('effectStatus');es.textContent='מגלגלים...';es.classList.remove('landed');let p=players[current];if(p.loseNext){p.loseNext=false;log(`התור של ${p.name} דולג.`);nextTurn();return}busy=true;setRollEnabled(false);let a=1+Math.floor(Math.random()*6),b=1+Math.floor(Math.random()*6);let n=0,iv=setInterval(()=>{document.getElementById('die1').textContent=DICE[Math.floor(Math.random()*6)];document.getElementById('die2').textContent=DICE[Math.floor(Math.random()*6)];sound(240+Math.random()*140,.03);if(++n>5){clearInterval(iv);document.getElementById('die1').textContent=DICE[a-1];document.getElementById('die2').textContent=DICE[b-1];moveSteps(a+b)}} ,50)}
+function diceTotalSpeech(n){
+  const words={
+    2:'שניים',3:'שלושה',4:'ארבעה',5:'חמישה',6:'שישה',
+    7:'שבעה',8:'שמונה',9:'תשעה',10:'עשרה',
+    11:'אחד עשר',12:'שנים עשר'
+  };
+  return words[n]||String(n);
+}
+async function moveSteps(n){let p=players[current];log(`בקוביות של ${p.name} יצא ${diceTotalSpeech(n)}.`);for(let i=0;i<n;i++){p.pos=(p.pos+1)%seq.length;renderPawns();await wait(85)}chainDepth=0;resolveTile(p.pos)}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function setRollEnabled(v){document.getElementById('rollBtn').disabled=!v;document.getElementById('rollBtn').style.opacity=v?'1':'.45'}
+function resolveTile(pos){if(chainDepth++>6){log('שרשרת פעולות נעצרה להגנה מבאג.');endAction();return}let s=seq[pos],p=players[current];let es=document.getElementById('effectStatus');es.textContent=s.t;es.classList.add('landed');log(`${p.name} נחת על ${s.t}.`);
+ switch(s.k){
+  case 'start': endAction();break;
+  case 'all': showHeatAllCard();break;
+  case 'nothing': showUniqueCard('כלום','nothing',nothingCards,'nothing');break;
+  case 'wheel': spinWheel();break;
+  case 'choose': choosePlayerModal('בחר שחקן','בחר משתתף למשימה זוגית.','pair');break;
+  case 'immune': p.immunity++;showInfo('חסינות','קיבלת חסינות אחת. אפשר להשתמש בה כדי להחליף קלף עתידי מאותה קטגוריה.');break;
+  case 'extra': extraTurn=true;showInfo('תור נוסף',`בסיום הפעולה יגיע תור נוסף ל-${p.name}.`);break;
+  case 'lose': p.loseNext=true;showInfo('הפסד תור',`התור הבא של ${p.name} ידולג.`);break;
+  case 'back2': animateRelative(-2);break;
+  case 'forward3': animateRelative(3);break;
+  case 'forward2': animateRelative(2);break;
+  case 'back3board': animateRelative(-3);break;
+  case 'reset': p.pos=0;renderPawns();showInfo('חזרה להתחלה','חזרת למשבצת ההתחלה.');break;
+  case 'swap': choosePlayerModal('החלפת מקום','בחר משתתף להחלפת מקומות.','swap');break;
+  default:endAction();
+ }}
+async function animateRelative(delta){let p=players[current],steps=Math.abs(delta),dir=Math.sign(delta);for(let i=0;i<steps;i++){p.pos=(p.pos+dir+seq.length)%seq.length;renderPawns();await wait(95)}resolveTile(p.pos)}
+let currentCardDeckKey=null,currentCardSource=null,currentCardTitle=null,currentCardKind=null;
+function replacementActorIndex(playerIndex=current){
+  const r=taskReplacementFor[playerIndex];
+  return (Number.isInteger(r)&&players[r]) ? r : playerIndex;
+}
+function consumeReplacementActor(playerIndex=current){
+  const r=replacementActorIndex(playerIndex);
+  if(r!==playerIndex) delete taskReplacementFor[playerIndex];
+  return r;
+}
+function showCard(title,text,kind,deckKey=null,source=null){
+  let p=players[current];
+
+  // "החלפה" בגלגל: המשימה האישית הבאה של השחקן עוברת למחליף שנבחר.
+  if((kind==='all'||kind==='bold') && replacementActorIndex(current)!==current){
+    const original=players[current];
+    const actorIndex=consumeReplacementActor(current);
+    const actor=players[actorIndex];
+    title=`${title} · החלפה`;
+    text=`${actor.name} מחליף/ה את ${original.name} במשימה הזאת:\n${text}`;
+    p=actor;
+  }
+
+  currentCardDeckKey=deckKey;
+  currentCardSource=source;
+  currentCardTitle=title;
+  currentCardKind=kind;
+  speakHebrew(`קלף ${title}. ${text}`);
+  let useImm=(p.immunity>0&&deckKey&&source)?`<button class="secondary" onclick="useImmunity()">🛡 השתמש בחסינות וקבל קלף אחר</button>`:'';
+  modal(`<h3>${title}</h3><p>${esc(text).replace(/\n/g,'<br>')}</p><div class="choices">${useImm}<button class="primary" onclick="closeModal();endAction()">בוצע / המשך</button></div>`);
+}
+function useImmunity(){
+  let p=players[current];
+  if(p.immunity<=0||!currentCardDeckKey||!currentCardSource)return;
+  p.immunity--;
+  updateUI();
+  const card=drawUnique(currentCardDeckKey,currentCardSource);
+  closeModal();
+  if(card===null){
+    showInfo(currentCardTitle,'אין קלף חדש נוסף בקטגוריה הזאת במשחק הנוכחי.');
+    return;
+  }
+  showCard(currentCardTitle,card,currentCardKind,currentCardDeckKey,currentCardSource);
+}
+function showInfo(title,text){speakHebrew(`${title}. ${text}`);modal(`<h3>${title}</h3><p>${esc(text)}</p><button class="primary" onclick="closeModal();endAction()">המשך</button>`)}
+function choosePlayerModal(title,text,action){
+  pendingChoiceAction=action;
+  speakHebrew(`${title}. ${text}`);
+
+  const pairAction=(action==='pair'||action==='wheelPair'||action==='luckPair'||action==='wheelBold'||action==='wheelChoose');
+  const taskPartnerAction=(action==='pair'||action==='wheelPair'||action==='luckPair'||action==='wheelBold');
+  const baseIndex=taskPartnerAction ? replacementActorIndex(current) : current;
+  const allowed=pairAction
+    ? eligibleOthers(baseIndex)
+    : players.map((p,i)=>i).filter(i=>i!==current);
+
+  if(!allowed.length){
+    pendingChoiceAction=null;
+    const msg=gameMode==='straight'
+      ? 'אין כרגע משתתף מהמין השני שאפשר לבחור.'
+      : gameMode==='gay'
+        ? 'אין כרגע משתתף מתאים מאותו המין שאפשר לבחור.'
+        : 'אין כרגע משתתף נוסף שאפשר לבחור.';
+    showInfo(title,msg);
+    return;
+  }
+
+  const choices=allowed.map(i=>
+    `<button class="choice" onclick="pickPlayer(${i})">${esc(players[i].name)}</button>`
+  ).join('');
+
+  modal(`<h3>${title}</h3><p>${text}</p><div class="choices">${choices}</div>`);
+}
+function pickPlayer(i){
+  let action=pendingChoiceAction;
+  pendingChoiceAction=null;
+  closeModal();
+
+  if(action==='pair'){
+    const original=players[current];
+    const actorIndex=consumeReplacementActor(current);
+    let actor=players[actorIndex],partner=players[i],source=pairCardsForCurrentHeat(),task=drawUnique('pair',source);
+    if(task===null){
+      showInfo('משימה זוגית',`כל המשימות הזוגיות הזמינות ברמת ${pairHeatName()} כבר הופיעו במשחק הנוכחי.`);
+      return;
+    }
+    const replacementNote=actorIndex!==current ? `${actor.name} מחליף/ה את ${original.name}.\n` : '';
+    log(`${actor.name} ו-${partner.name} קיבלו משימה זוגית.`);
+    setTimeout(()=>showCard(`משימה זוגית · ${pairHeatName()}`,`${replacementNote}${actor.name} ו-${partner.name}:\n${task}`,'pair','pair',source),60);
+    return;
+  }
+
+  if(action==='swap'){
+    let p=players[current],q=players[i],tmp=p.pos;
+    p.pos=q.pos;q.pos=tmp;
+    updateUI();
+    log(`${p.name} ו-${q.name} החליפו מקומות.`);
+    setTimeout(()=>showInfo('החלפת מקום',`הפיונים של ${p.name} ושל ${q.name} החליפו מקומות. המשבצות החדשות אינן מופעלות מחדש.`),60);
+    return;
+  }
+
+  if(action==='wheelPair'){
+    const original=players[current];
+    const actorIndex=consumeReplacementActor(current);
+    let actor=players[actorIndex],partner=players[i],source=pairCardsForCurrentHeat(),task=drawUnique('pair',source);
+    if(task===null){
+      showInfo('משימה זוגית',`כל המשימות הזוגיות הזמינות ברמת ${pairHeatName()} כבר הופיעו במשחק הנוכחי.`);
+      return;
+    }
+    const replacementNote=actorIndex!==current ? `${actor.name} מחליף/ה את ${original.name}.\n` : '';
+    log(`${actor.name} ו-${partner.name} קיבלו משימה זוגית.`);
+    setTimeout(()=>showCard(`משימה זוגית · ${pairHeatName()}`,`${replacementNote}${actor.name} ו-${partner.name}:\n${task}`,'pair','pair',source),60);
+    return;
+  }
+
+  if(action==='wheelBold'){
+    const original=players[current];
+    const actorIndex=consumeReplacementActor(current);
+    let actor=players[actorIndex],partner=players[i],source=boldCardsForCurrentHeat(),task=drawUnique('bold',source);
+    if(task===null){
+      const allWritten=boldCards.filter(x=>typeof x==='string'&&x.trim());
+      task=drawUnique('bold',allWritten);
+      source=allWritten;
+    }
+    if(task===null){
+      showInfo('משימה נועזת','כל המשימות הנועזות הזמינות כבר הופיעו במשחק הנוכחי.');
+      return;
+    }
+    const replacementNote=actorIndex!==current ? `${actor.name} מחליף/ה את ${original.name}.\n` : '';
+    log(`${actor.name} ו-${partner.name} קיבלו משימה נועזת.`);
+    setTimeout(()=>showCard(`משימה נועזת · ${boldHeatName()}`,`${replacementNote}${actor.name} ו-${partner.name}:\n${task}`,'pair','bold',source),60);
+    return;
+  }
+
+  if(action==='wheelReplace'){
+    let actor=players[current],partner=players[i];
+    taskReplacementFor[current]=i;
+    log(`${actor.name} בחר את ${partner.name} להחלפה.`);
+    setTimeout(()=>showInfo('החלפה פעילה',`${partner.name} יחליף/תחליף את ${actor.name} במשימת הקלף הבאה שלו. ההחלפה נשמרת עד שתופיע משימה.`),60);
+    return;
+  }
+
+  if(action==='wheelChoose'){
+    const chosen=players[i];
+    const outcome=rand(['question','dare','immunity','skip','forward','decide']);
+
+    if(outcome==='question'){
+      const q=drawUnique('nothing',nothingCards);
+      if(q===null){showInfo('בחירת שחקן','כל השאלות הזמינות כבר הופיעו במשחק הזה.');return;}
+      setTimeout(()=>showCard('בחירת שחקן — שאלה',`${chosen.name} עונה/ה:\n${q}`,'choice',null,null),60);
+      return;
+    }
+
+    if(outcome==='dare'){
+      const source=allCardsForCurrentHeat();
+      let d=drawUnique('all',source);
+      if(d===null){
+        const fallback=allCards.filter(x=>typeof x==='string'&&x.trim());
+        d=drawUnique('all',fallback);
+      }
+      if(d===null){showInfo('בחירת שחקן','כל המשימות הזמינות כבר הופיעו במשחק הזה.');return;}
+      setTimeout(()=>showCard(`בחירת שחקן — חובה · ${heatName()}`,`${chosen.name} מבצע/ת:\n${d}`,'choice',null,null),60);
+      return;
+    }
+
+    if(outcome==='immunity'){
+      chosen.immunity++;
+      updateUI();
+      setTimeout(()=>showInfo('בחירת שחקן — בונוס',`${chosen.name} קיבל/ה חסינות.`),60);
+      return;
+    }
+
+    if(outcome==='skip'){
+      chosen.loseNext=true;
+      updateUI();
+      setTimeout(()=>showInfo('בחירת שחקן — קנס',`${chosen.name} יפסיד/תפסיד את התור הבא.`),60);
+      return;
+    }
+
+    if(outcome==='forward'){
+      chosen.pos=(chosen.pos+3)%seq.length;
+      updateUI();
+      setTimeout(()=>showInfo('בחירת שחקן — קדימה',`${chosen.name} התקדם/ה 3 משבצות. המשבצת החדשה לא מופעלת.`),60);
+      return;
+    }
+
+    if(outcome==='decide'){
+      speakHebrew(`${chosen.name} בוחר בשביל ${players[current].name}. הכל או כלום.`);
+      setTimeout(()=>modal(`<h3>בחירת שחקן — החלטה</h3><p>${esc(chosen.name)} בוחר/ת בשביל ${esc(players[current].name)}: הכל או כלום?</p><div class="choices"><button class="choice" onclick="closeModal();showHeatAllCard()">הכל</button><button class="choice" onclick="closeModal();showUniqueCard('כלום','nothing',nothingCards,'nothing')">כלום</button></div>`),60);
+      return;
+    }
+  }
+
+  if(action==='luckPair'){
+    const original=players[current];
+    const actorIndex=consumeReplacementActor(current);
+    let actor=players[actorIndex],partner=players[i],source=pairCardsForCurrentHeat(),task=drawUnique('pair',source);
+    if(task===null){
+      showInfo('מזל — משימה זוגית',`כל המשימות הזוגיות הזמינות ברמת ${pairHeatName()} כבר הופיעו במשחק הנוכחי.`);
+      return;
+    }
+    const replacementNote=actorIndex!==current ? `${actor.name} מחליף/ה את ${original.name}.\n` : '';
+    log(`${actor.name} ו-${partner.name} קיבלו בונוס זוגי.`);
+    setTimeout(()=>showCard(`מזל — זוג · ${pairHeatName()}`,`${replacementNote}${actor.name} ו-${partner.name}:\n${task}`,'pair','pair',source),60);
+    return;
+  }
+
+  if(action==='luckSkip'){
+    players[i].loseNext=true;
+    updateUI();
+    setTimeout(()=>showInfo('מזל — בחירה',`${players[i].name} יפסיד/תפסיד את התור הבא.`),60);
+    return;
+  }
+
+  if(action==='luckGiveImmunity'){
+    players[i].immunity++;
+    updateUI();
+    setTimeout(()=>showInfo('מזל — מתנה',`${players[i].name} קיבל/ה חסינות ממך.`),60);
+    return;
+  }
+
+  if(action==='luckStealImmunity'){
+    if(players[i].immunity>0){
+      players[i].immunity--;
+      players[current].immunity++;
+      updateUI();
+      setTimeout(()=>showInfo('מזל — גניבת חסינות',`לקחת חסינות אחת מ-${players[i].name}.`),60);
+    }else{
+      players[current].immunity++;
+      updateUI();
+      setTimeout(()=>showInfo('מזל — אין מה לגנוב',`${players[i].name} בלי חסינות, אז קיבלת חסינות אחת במקום.`),60);
+    }
+    return;
+  }
+
+  if(action==='luckBack2'){
+    players[i].pos=(players[i].pos-2+seq.length)%seq.length;
+    updateUI();
+    setTimeout(()=>showInfo('מזל — אחורה',`${players[i].name} זז/ה 2 משבצות אחורה. המשבצת החדשה לא מופעלת.`),60);
+    return;
+  }
+
+  if(action==='luckForward3'){
+    players[i].pos=(players[i].pos+3)%seq.length;
+    updateUI();
+    setTimeout(()=>showInfo('מזל — קדימה',`${players[i].name} זז/ה 3 משבצות קדימה. המשבצת החדשה לא מופעלת.`),60);
+    return;
+  }
+
+  if(action==='luckSwap'){
+    let p=players[current],q=players[i],tmp=p.pos;
+    p.pos=q.pos;q.pos=tmp;
+    updateUI();
+    setTimeout(()=>showInfo('מזל — החלפת מקום',`${p.name} ו-${q.name} החליפו מקומות. המשבצות החדשות לא מופעלות.`),60);
+    return;
+  }
+}
+function modal(html){
+  const host=document.getElementById('modalHost');
+  host.innerHTML=`<div class="modal-back"><div class="card modal">${html}</div></div>`;
+  document.body.classList.add('modal-open');
+  requestAnimationFrame(fitGameToViewport);
+}
+function closeModal(){
+  document.getElementById('modalHost').innerHTML='';
+  document.body.classList.remove('modal-open');
+  requestAnimationFrame(fitGameToViewport);
+}
+function endAction(){busy=false;setRollEnabled(true);updateUI();if(extraTurn){extraTurn=false;log(`תור נוסף ל-${players[current].name}.`);return}nextTurn()}
+function nextTurn(){
+  const oldHeat=currentHeatLevel();
+  completedTurns++;
+  const newHeat=currentHeatLevel();
+  current=(current+1)%players.length;
+  updateUI();
+
+  if(newHeat>oldHeat){
+    log(`🔥 רמת החום עלתה: ${heatName(newHeat)}.`);
+    speakHebrew(`רמת החום עלתה. ${heatName(newHeat)}.`,true);
+  }
+
+  log(`עכשיו התור של ${players[current].name}.`,false);
+  speakHebrew(`עכשיו התור של ${players[current].name}.`,true);
+  skipIfNeeded();
+}
+function skipIfNeeded(){let p=players[current];if(p.loseNext){setTimeout(()=>modal(`<h3>הפסד תור</h3><p>${esc(p.name)} מפסיד/ה את התור הזה.</p><button class="primary" onclick="players[current].loseNext=false;closeModal();log('${escJs(p.name)} דולג/ה בגלל הפסד תור.');nextTurn()">המשך</button>`),80)} }
+function manualSpinWheel(){if(!busy){busy=true;setRollEnabled(false);spinWheel()}}
+function spinWheel(){
+  const segmentCount=WHEEL_CATS.length;
+  const idx=Math.floor(Math.random()*segmentCount);
+  const seg=360/segmentCount;
+  const desired=((360-(idx*seg))%360+360)%360;
+  const currentMod=((wheelRotation%360)+360)%360;
+  const delta=360*5+((desired-currentMod+360)%360);
+  wheelRotation+=delta;
+  const disc=document.getElementById('wheelDisc');
+  if(disc) disc.style.transform=`rotate(${wheelRotation}deg)`;
+  sound(520,.1);
+  setTimeout(()=>{const c=WHEEL_CATS[idx];log(`הגלגל נעצר על ${c.t}.`);handleWheel(c)},2380);
+}
+function handleWheel(c){switch(c.k){
+ case 'pair':choosePlayerModal('זוג','בחר משתתף למשימה הזוגית.','wheelPair');break
+ case 'bold':choosePlayerModal('משימה נועזת',`בחר משתתף למשימה נועזת ברמת ${boldHeatName()}.`,'wheelBold');break;
+ case 'truthdare':speakHebrew('אמת או חובה. בחר לפני שהקלף נחשף.');modal(`<h3>אמת או חובה</h3><p><b>אמת</b> = שאלה · <b>חובה</b> = משימה</p><div class="choices"><button class="choice" onclick="closeModal();showTruthCard('אמת')">אמת — שאלה</button><button class="choice" onclick="closeModal();showDareCard('חובה')">חובה — משימה</button></div>`);break;
+ case 'replace':choosePlayerModal('החלפה','בחר משתתף שיחליף אותך במשימה הבאה.','wheelReplace');break
+ case 'choose':choosePlayerModal('בחירת שחקן','בחר משתתף. המשחק יגריל מה יקרה לו או ביניכם.','wheelChoose');break;
+ case 'luck':luckEvent();break;
+ case 'aon':speakHebrew('הכל או כלום. בחר לפני שתראה את הקלף.');modal(`<h3>הכל או כלום</h3><p>בחר לפני שהקלף נחשף.</p><div class="choices"><button class="choice" onclick="closeModal();showUniqueCard('הכל','aonAll',aonAll,'bold')">הכל</button><button class="choice" onclick="closeModal();showUniqueCard('כלום','aonNothing',aonNothing,'nothing')">כלום</button></div>`);break;
+ }}
+const luckEvents=[
+  'immune1','immune2','extra','forward3','forward5','back2','back3','spinAgain',
+  'bonusAll','bonusNothing','bonusBold','truthDare','pairBonus','chooseSkip','giveImmunity',
+  'stealImmunity','swap','chooseBack2','chooseForward3','allForward1','allBack1','allImmunity',
+  'returnStart','nextAll','nextNothing','nextWheel','allOrNothing','doublePrize','safeBonus','wildCard'
+];
+const usedLuckEvents=new Set();
+
+function drawLuckEvent(){
+  let available=luckEvents.filter(x=>!usedLuckEvents.has(x));
+  if(!available.length){
+    usedLuckEvents.clear();
+    available=[...luckEvents];
+  }
+  const e=rand(available);
+  usedLuckEvents.add(e);
+  return e;
+}
+function moveEveryone(delta){
+  players.forEach(p=>p.pos=(p.pos+delta+seq.length)%seq.length);
+  updateUI();
+}
+function moveToNextKind(kind,title){
+  const p=players[current];
+  let target=p.pos;
+  for(let step=1;step<=seq.length;step++){
+    const idx=(p.pos+step)%seq.length;
+    if(seq[idx].k===kind){target=idx;break;}
+  }
+  p.pos=target;
+  updateUI();
+  log(`${p.name} עבר/ה ל-${title}.`);
+  resolveTile(p.pos);
+}
+function luckEvent(){
+  const e=drawLuckEvent();
+  const p=players[current];
+
+  switch(e){
+    case 'immune1':
+      p.immunity++;
+      updateUI();
+      showInfo('מזל — חסינות','זכית בחסינות אחת.');
+      break;
+
+    case 'immune2':
+      p.immunity+=2;
+      updateUI();
+      showInfo('מזל גדול — שתי חסינויות','זכית בשתי חסינויות.');
+      break;
+
+    case 'extra':
+      extraTurn=true;
+      showInfo('מזל — תור נוסף',`בסיום הפעולה יהיה תור נוסף ל-${p.name}.`);
+      break;
+
+    case 'forward3':
+      modal(`<h3>מזל — קדימה</h3><p>הפיון מתקדם 3 משבצות.</p><button class="primary" onclick="closeModal();animateRelative(3)">קדימה</button>`);
+      break;
+
+    case 'forward5':
+      modal(`<h3>מזל גדול — קדימה</h3><p>הפיון מתקדם 5 משבצות.</p><button class="primary" onclick="closeModal();animateRelative(5)">קדימה</button>`);
+      break;
+
+    case 'back2':
+      modal(`<h3>מזל הפוך</h3><p>הפיון חוזר 2 משבצות.</p><button class="primary" onclick="closeModal();animateRelative(-2)">אחורה</button>`);
+      break;
+
+    case 'back3':
+      modal(`<h3>מזל הפוך</h3><p>הפיון חוזר 3 משבצות.</p><button class="primary" onclick="closeModal();animateRelative(-3)">אחורה</button>`);
+      break;
+
+    case 'spinAgain':
+      speakHebrew('מזל. קיבלת סיבוב נוסף בגלגל.');
+      modal(`<h3>מזל — שוב לגלגל</h3><p>סיבוב נוסף בגלגל.</p><button class="primary" onclick="closeModal();spinWheel()">סובב שוב</button>`);
+      break;
+
+    case 'bonusAll':
+      speakHebrew('מזל. קיבלת משימת הכל בונוס.');
+      showHeatAllCard();
+      break;
+
+    case 'bonusNothing':
+      speakHebrew('מזל. קיבלת שאלת כלום בונוס.');
+      showUniqueCard('מזל — שאלת כלום','nothing',nothingCards,'nothing');
+      break;
+
+    case 'bonusBold':
+      speakHebrew('מזל. קיבלת משימה נועזת בונוס.');
+      choosePlayerModal('מזל — משימה נועזת',`בחר משתתף למשימה נועזת ברמת ${boldHeatName()}.`,'wheelBold');
+      break;
+
+    case 'truthDare':
+      speakHebrew('מזל. אמת או חובה.');
+      modal(`<h3>מזל — אמת או חובה</h3><p><b>אמת</b> = שאלה · <b>חובה</b> = משימה</p><div class="choices"><button class="choice" onclick="closeModal();showTruthCard('אמת')">אמת — שאלה</button><button class="choice" onclick="closeModal();showDareCard('חובה')">חובה — משימה</button></div>`);
+      break;
+
+    case 'pairBonus':
+      choosePlayerModal('מזל — זוג','בחר משתתף למשימת זוג בונוס.','luckPair');
+      break;
+
+    case 'chooseSkip':
+      choosePlayerModal('מזל — הפסד תור','בחר משתתף שיפסיד את התור הבא.','luckSkip');
+      break;
+
+    case 'giveImmunity':
+      choosePlayerModal('מזל — מתנה','בחר משתתף שיקבל ממך חסינות בונוס.','luckGiveImmunity');
+      break;
+
+    case 'stealImmunity':
+      choosePlayerModal('מזל — גניבת חסינות','בחר משתתף שממנו תנסה לקחת חסינות.','luckStealImmunity');
+      break;
+
+    case 'swap':
+      choosePlayerModal('מזל — החלפת מקום','בחר משתתף להחלפת מקומות.','luckSwap');
+      break;
+
+    case 'chooseBack2':
+      choosePlayerModal('מזל — שלח אחורה','בחר משתתף שיחזור 2 משבצות.','luckBack2');
+      break;
+
+    case 'chooseForward3':
+      choosePlayerModal('מזל — מתנה קדימה','בחר משתתף שיתקדם 3 משבצות.','luckForward3');
+      break;
+
+    case 'allForward1':
+      moveEveryone(1);
+      showInfo('מזל לכולם','כל המשתתפים התקדמו משבצת אחת. המשבצות החדשות אינן מופעלות.');
+      break;
+
+    case 'allBack1':
+      moveEveryone(-1);
+      showInfo('מזל הפוך לכולם','כל המשתתפים חזרו משבצת אחת. המשבצות החדשות אינן מופעלות.');
+      break;
+
+    case 'allImmunity':
+      players.forEach(x=>x.immunity++);
+      updateUI();
+      showInfo('מזל לכולם','כל המשתתפים קיבלו חסינות אחת.');
+      break;
+
+    case 'returnStart':
+      p.pos=0;
+      updateUI();
+      showInfo('מזל הפוך — להתחלה','חזרת למשבצת ההתחלה.');
+      break;
+
+    case 'nextAll':
+      speakHebrew('מזל. עוברים למשבצת הכל הבאה.');
+      moveToNextKind('all','הכל');
+      break;
+
+    case 'nextNothing':
+      speakHebrew('מזל. עוברים למשבצת כלום הבאה.');
+      moveToNextKind('nothing','כלום');
+      break;
+
+    case 'nextWheel':
+      speakHebrew('מזל. עוברים למשבצת הגלגל הבאה.');
+      moveToNextKind('wheel','גלגל');
+      break;
+
+    case 'allOrNothing':
+      speakHebrew('מזל. הכל או כלום.');
+      modal(`<h3>מזל — הכל או כלום</h3><p>בחר לפני שתראה את הקלף.</p><div class="choices"><button class="choice" onclick="closeModal();showHeatAllCard()">הכל</button><button class="choice" onclick="closeModal();showUniqueCard('כלום','nothing',nothingCards,'nothing')">כלום</button></div>`);
+      break;
+
+    case 'doublePrize':
+      p.immunity++;
+      extraTurn=true;
+      updateUI();
+      showInfo('מזל כפול','קיבלת חסינות וגם תור נוסף.');
+      break;
+
+    case 'safeBonus':
+      if(p.loseNext){
+        p.loseNext=false;
+        updateUI();
+        showInfo('מזל — ביטול קנס','ביטלת את הפסד התור הבא שלך.');
+      }else{
+        p.immunity++;
+        updateUI();
+        showInfo('מזל — רשת ביטחון','אין עליך קנס, לכן קיבלת חסינות.');
+      }
+      break;
+
+    case 'wildCard': {
+      const wild=rand(['all','nothing','bold','pair']);
+      if(wild==='all'){showHeatAllCard();break;}
+      if(wild==='nothing'){showUniqueCard('מזל פראי — כלום','nothing',nothingCards,'nothing');break;}
+      if(wild==='bold'){choosePlayerModal('מזל פראי — נועז',`בחר משתתף למשימה נועזת ברמת ${boldHeatName()}.`,'wheelBold');break;}
+      choosePlayerModal('מזל פראי — זוג','בחר משתתף למשימת זוג.','luckPair');
+      break;
+    }
+  }
+}
+function eligibleOthers(i){let me=players[i];return players.map((p,idx)=>({p,idx})).filter(x=>x.idx!==i).filter(x=>gameMode==='bi'||(gameMode==='straight'?x.p.gender!==me.gender:x.p.gender===me.gender)).map(x=>x.idx)}
+function otherRandom(i){let arr=players.map((_,x)=>x).filter(x=>x!==i);return rand(arr)}
+const usedCardIndexes={};
+
+function resetCardHistory(){
+  Object.keys(usedCardIndexes).forEach(k=>delete usedCardIndexes[k]);
+  if(typeof usedLuckEvents!=='undefined') usedLuckEvents.clear();
+}
+
+function drawUnique(deckKey, source){
+  if(!usedCardIndexes[deckKey]) usedCardIndexes[deckKey]=new Set();
+  const used=usedCardIndexes[deckKey];
+  const available=source.filter(card=>typeof card==='string'&&card.trim()&&!used.has(card));
+
+  // A card is never repeated during the same game.
+  if(!available.length) return null;
+
+  const card=available[Math.floor(Math.random()*available.length)];
+  used.add(card);
+  return card;
+}
+
+function roundNumber(){
+  return players.length ? Math.floor(completedTurns/players.length)+1 : 1;
+}
+function currentHeatLevel(){
+  const r=roundNumber();
+  if(r<=2) return 1;
+  if(r<=5) return 2;
+  if(r<=8) return 3;
+  return 4;
+}
+function heatName(level=currentHeatLevel()){
+  return ['','חימום','מגע','נועז','אקסטרים'][level]||'חימום';
+}
+function allCardsForCurrentHeat(){
+  const level=currentHeatLevel();
+  let pool=[...allWarmupCards];
+  if(level>=2) pool.push(...allTouchCards);
+  if(level>=3) pool.push(...allBoldHeatCards);
+  if(level>=4) pool.push(...allExtremeCards.filter(x=>typeof x==='string'&&x.trim()));
+  return pool;
+}
+function showHeatAllCard(){
+  let source=allCardsForCurrentHeat();
+  let card=drawUnique('all',source);
+
+  if(card===null){
+    source=allCards.filter(x=>typeof x==='string'&&x.trim());
+    card=drawUnique('all',source);
+  }
+  if(card===null){
+    showInfo('הכל','כל המשימות הזמינות כבר הופיעו במשחק הנוכחי.');
+    return;
+  }
+
+  showCard(`הכל · ${heatName()}`,card,'all','all',source);
+}
+
+function showUniqueCard(title,deckKey,source,kind){
+  const card=drawUnique(deckKey,source);
+  if(card===null){
+    showInfo(title,'כל הקלפים הייחודיים בקטגוריה הזאת כבר הופיעו במשחק הנוכחי.');
+    return;
+  }
+  showCard(title,card,kind,deckKey,source);
+}
+
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function escJs(s){return String(s).replace(/['\\]/g,'\\$&')}
+
+
+
+function fitTileTypography(){
+  document.querySelectorAll('.tile').forEach(tile=>{
+    const inner=tile.querySelector('.tile-inner');
+    if(!inner) return;
+    inner.style.transform='scale(1)';
+    const aw=Math.max(1,tile.clientWidth-3), ah=Math.max(1,tile.clientHeight-3);
+    const cw=Math.max(1,inner.scrollWidth), ch=Math.max(1,inner.scrollHeight);
+    let s=Math.min(1,aw/cw,ah/ch);
+    if(s<.995) s=Math.max(.72,s*.97);
+    inner.style.transform='scale('+s.toFixed(3)+')';
+  });
+}
+function fitWheelTypography(){
+  const disc=document.getElementById('wheelDisc');
+  if(!disc) return;
+  disc.querySelectorAll('.wheel-label').forEach(box=>{
+    const inner=box.querySelector('.wheel-label-inner');
+    if(!inner) return;
+    inner.style.transform='scale(1)';
+    const aw=Math.max(1,box.clientWidth-2), ah=Math.max(1,box.clientHeight-2);
+    const cw=Math.max(1,inner.scrollWidth), ch=Math.max(1,inner.scrollHeight);
+    let s=Math.min(1,aw/cw,ah/ch);
+    if(s<.995) s=Math.max(.68,s*.96);
+    inner.style.transform='scale('+s.toFixed(3)+')';
+  });
+}
+function fitBoardTypography(){fitTileTypography();fitWheelTypography();}
+
+function wheelTextHtml(t){
+  const map={
+    'משימה נועזת':'משימה<br>נועזת',
+    'אמת או חובה':'אמת<br>או חובה',
+    'בחירת שחקן':'בחירת<br>שחקן',
+    'הכל או כלום':'הכל<br>או כלום'
+  };
+  return map[t]||t;
+}
+function buildWheelVisual(){
+  const disc=document.getElementById('wheelDisc'); if(!disc)return;
+  disc.querySelectorAll('.wheel-label').forEach(x=>x.remove());
+  const n=WHEEL_CATS.length, radius=29.3;
+  WHEEL_CATS.forEach((c,i)=>{
+    const a=i*(360/n), rad=(a-90)*Math.PI/180;
+    const x=50+radius*Math.cos(rad), y=50+radius*Math.sin(rad);
+    const el=document.createElement('div'); el.className='wheel-label';
+    el.style.left=x+'%'; el.style.top=y+'%';
+    // Pre-rotate each label with its own wedge. When that wedge reaches 12 o'clock,
+    // the wheel's rotation cancels this angle and the landed text is upright.
+    el.style.transform='translate(-50%,-50%) rotate('+a+'deg)';
+    el.innerHTML='<span class="wheel-label-inner"><span class="wi">'+c.i+'</span><span class="wtxt">'+wheelTextHtml(c.t)+'</span></span>';
+    disc.appendChild(el);
+  });
+  requestAnimationFrame(fitWheelTypography);
+  setTimeout(fitWheelTypography,80);
+}
+const __buildBoard=buildBoard; buildBoard=function(){__buildBoard();buildWheelVisual();requestAnimationFrame(fitBoardTypography);setTimeout(fitBoardTypography,100);};
+window.addEventListener('load',()=>{buildWheelVisual();setTimeout(fitBoardTypography,100);});
+</script></body></html>

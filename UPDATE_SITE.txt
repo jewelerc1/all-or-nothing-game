@@ -1,0 +1,11 @@
+ALL OR NOTHING — WEBSITE UPDATE
+
+1. Extract this ZIP.
+2. Merge the five website files into your EXISTING complete website folder. Keep original assets, APK files and any newer purchase/download URL settings.
+3. Upload the COMPLETE folder to Netlify. This ZIP alone is NOT a complete deploy: original images and APK are not included.
+
+Included: index.html, config.js, privacy.html, terms.html, refunds.html.
+
+Updates: approved installation instructions and cancellation/refund policy in Hebrew, English and Russian; seller identity and contact details; purchase/footer policy links and a dedicated cancellation entry link. Cancellation email links open the user email application; they do not submit messages automatically.
+
+Legal review: checked cancellation methods, statutory time limits, fee limits, defect/non-delivery treatment, and rights safeguards against legal sources. Specific classification of this software license and applicability of digital-information exceptions remain for legal counsel. No legal compliance certification is implied. Business details were supplied by the owner and were not independently verified.
